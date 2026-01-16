@@ -90,7 +90,7 @@ const productionConfig: EnvironmentConfig = {
     appId: '1:9876543210:web:prod',
   },
   api: {
-    baseUrl: 'https://fitglue.app',
+    baseUrl: 'https://fitglue.tech',
   },
   debug: false,
 };

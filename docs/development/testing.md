@@ -310,7 +310,7 @@ describe('Authentication', () => {
   });
 
   it('should sign in with valid credentials', async () => {
-    await element(by.placeholder('you@example.com')).typeText('test@fitglue.app');
+    await element(by.placeholder('you@example.com')).typeText('test@fitglue.tech');
     await element(by.placeholder('••••••••')).typeText('testpassword');
     await element(by.text('Sign In')).tap();
 

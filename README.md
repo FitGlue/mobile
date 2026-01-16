@@ -127,9 +127,9 @@ The app supports three environments, configured via the `EXPO_PUBLIC_ENVIRONMENT
 
 | Environment | Firebase Project | API Base URL |
 |-------------|-----------------|--------------|
-| `development` | fitglue-dev | https://fitglue-dev.web.app |
-| `test` | fitglue-test | https://fitglue-test.web.app |
-| `production` | fitglue-prod | https://fitglue.app |
+| `development` | fitglue-dev | https://dev.fitglue.tech |
+| `test` | fitglue-test | https://test.fitglue.tech |
+| `production` | fitglue-prod | https://fitglue.tech |
 
 See [Local Development](docs/development/local-development.md) for detailed setup.
 

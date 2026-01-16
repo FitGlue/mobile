@@ -323,7 +323,7 @@ User registration is **not available in the mobile app**. Users must register vi
 
 ```typescript
 const handleRegisterLink = useCallback(() => {
-  Linking.openURL('https://fitglue.app/register');
+  Linking.openURL('https://fitglue.tech/auth/register');
 }, []);
 ```
 

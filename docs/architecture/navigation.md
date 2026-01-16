@@ -97,8 +97,8 @@ Entry point for unauthenticated users.
 - Environment badge for dev/test builds
 
 **External Links:**
-- Register: `https://fitglue.app/register`
-- Forgot Password: `https://fitglue.app/forgot-password`
+- Register: `https://fitglue.tech/auth/register`
+- Forgot Password: `https://fitglue.tech/auth/forgot-password`
 
 ### HomeScreen
 

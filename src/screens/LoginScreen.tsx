@@ -45,11 +45,11 @@ export function LoginScreen(): JSX.Element {
   }, [email, password, signIn, clearError]);
 
   const handleRegisterLink = useCallback(() => {
-    Linking.openURL('https://fitglue.app/register');
+    Linking.openURL('https://fitglue.tech/auth/register');
   }, []);
 
   const handleForgotPassword = useCallback(() => {
-    Linking.openURL('https://fitglue.app/forgot-password');
+    Linking.openURL('https://fitglue.tech/auth/forgot-password');
   }, []);
 
   return (
@@ -154,7 +154,7 @@ export function LoginScreen(): JSX.Element {
         <View style={styles.registerContainer}>
           <Text style={styles.registerText}>Don't have an account?</Text>
           <TouchableOpacity onPress={handleRegisterLink}>
-            <Text style={styles.registerLink}>Register at fitglue.app</Text>
+            <Text style={styles.registerLink}>Register at fitglue.tech</Text>
           </TouchableOpacity>
         </View>
 
