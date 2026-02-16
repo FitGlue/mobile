@@ -12,7 +12,7 @@ export type Environment = 'development' | 'test' | 'production';
 
 // Get the current environment from Expo Constants
 function getEnvironment(): Environment {
-  const env = Constants.expirationDate?.extra?.environment ??
+  const env = Constants.expoConfig?.extra?.environment ??
     process.env.EXPO_PUBLIC_ENVIRONMENT ??
     'development';
 
@@ -48,15 +48,15 @@ export interface EnvironmentConfig {
 const developmentConfig: EnvironmentConfig = {
   environment: 'development',
   firebase: {
-    apiKey: 'AIzaSyCBT-Fkc0NVvR7W8HbH9c9o4xn4r0TnNno',
-    authDomain: 'fitglue-dev.firebaseapp.com',
-    projectId: 'fitglue-dev',
-    storageBucket: 'fitglue-dev.appspot.com',
-    messagingSenderId: '1051236621649',
-    appId: '1:1051236621649:web:dev',
+    apiKey: "AIzaSyD8JUkFQvg6XtU-0b-HJfkETykxYfIh1Ow",
+    appId: "1:911679924866:web:33a1ae4ab3c00b2f41229b",
+    authDomain: "fitglue-server-dev.firebaseapp.com",
+    messagingSenderId: "911679924866",
+    projectId: "fitglue-server-dev",
+    storageBucket: "fitglue-server-dev.firebasestorage.app"
   },
   api: {
-    baseUrl: 'https://fitglue-dev.web.app',
+    baseUrl: 'https://dev.fitglue.tech',
   },
   debug: true,
 };
@@ -65,15 +65,15 @@ const developmentConfig: EnvironmentConfig = {
 const testConfig: EnvironmentConfig = {
   environment: 'test',
   firebase: {
-    apiKey: 'AIzaSyCBT-Fkc0NVvR7W8HbH9c9o4xn4r0TnNno',
-    authDomain: 'fitglue-test.firebaseapp.com',
-    projectId: 'fitglue-test',
-    storageBucket: 'fitglue-test.appspot.com',
-    messagingSenderId: '1051236621649',
-    appId: '1:1051236621649:web:test',
+    apiKey: "AIzaSyD_yxpls_2COX8UH69TJ7YIj0UqT04CEpw",
+    appId: "1:797085295878:web:689edb5f7da2c3a4d0ea87",
+    authDomain: "fitglue-server-test.firebaseapp.com",
+    messagingSenderId: "797085295878",
+    projectId: "fitglue-server-test",
+    storageBucket: "fitglue-server-test.firebasestorage.app"
   },
   api: {
-    baseUrl: 'https://fitglue-test.web.app',
+    baseUrl: 'https://test.fitglue.tech',
   },
   debug: true,
 };
@@ -82,12 +82,12 @@ const testConfig: EnvironmentConfig = {
 const productionConfig: EnvironmentConfig = {
   environment: 'production',
   firebase: {
-    apiKey: 'AIzaSyBQG0G6Q7F5V6N9H8J4K5L6M7N8O9P0Q1R',
-    authDomain: 'fitglue-prod.firebaseapp.com',
-    projectId: 'fitglue-prod',
-    storageBucket: 'fitglue-prod.appspot.com',
-    messagingSenderId: '9876543210',
-    appId: '1:9876543210:web:prod',
+    apiKey: "AIzaSyBXg4kJ9vrayJhoQYqDhOvfXZx3t06Sr7c",
+    appId: "1:605889586984:web:75e91e2e7d1e085d50521d",
+    authDomain: "fitglue-server-prod.firebaseapp.com",
+    messagingSenderId: "605889586984",
+    projectId: "fitglue-server-prod",
+    storageBucket: "fitglue-server-prod.firebasestorage.app"
   },
   api: {
     baseUrl: 'https://fitglue.tech',

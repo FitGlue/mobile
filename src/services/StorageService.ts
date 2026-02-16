@@ -11,6 +11,7 @@ const KEYS = {
   LAST_SYNC_DATE: '@fitglue/last_sync_date',
   SYNC_ENABLED: '@fitglue/sync_enabled',
   USER_PREFERENCES: '@fitglue/user_preferences',
+  PENDING_ACTIVITIES: '@fitglue/pending_activities',
 };
 
 /**
@@ -112,6 +113,7 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.LAST_SYNC_DATE,
       KEYS.SYNC_ENABLED,
       KEYS.USER_PREFERENCES,
+      KEYS.PENDING_ACTIVITIES,
     ]);
   } catch (e) {
     console.error('[StorageService] Failed to clear storage:', e);
@@ -125,4 +127,45 @@ export function getDefaultSyncDate(): Date {
   const date = new Date();
   date.setDate(date.getDate() - 30);
   return date;
+}
+
+/**
+ * Get queued activities that failed to sync
+ */
+export async function getQueuedActivities(): Promise<any[]> {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.PENDING_ACTIVITIES);
+    if (value) {
+      return JSON.parse(value);
+    }
+    return [];
+  } catch (e) {
+    console.error('[StorageService] Failed to get queued activities:', e);
+    return [];
+  }
+}
+
+/**
+ * Add activities to the offline queue
+ */
+export async function addToQueue(activities: any[]): Promise<void> {
+  try {
+    const existing = await getQueuedActivities();
+    const combined = [...existing, ...activities];
+    await AsyncStorage.setItem(KEYS.PENDING_ACTIVITIES, JSON.stringify(combined));
+    console.log(`[StorageService] Queued ${activities.length} activities (total: ${combined.length})`);
+  } catch (e) {
+    console.error('[StorageService] Failed to queue activities:', e);
+  }
+}
+
+/**
+ * Clear the offline queue (after successful sync)
+ */
+export async function clearQueue(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.PENDING_ACTIVITIES);
+  } catch (e) {
+    console.error('[StorageService] Failed to clear queue:', e);
+  }
 }

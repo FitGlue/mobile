@@ -124,6 +124,8 @@ function mapExerciseType(exerciseType: number): string {
 const REQUIRED_PERMISSIONS = [
   { accessType: 'read', recordType: 'ExerciseSession' },
   { accessType: 'read', recordType: 'HeartRate' },
+  { accessType: 'read', recordType: 'TotalCaloriesBurned' },
+  { accessType: 'read', recordType: 'Distance' },
   // ExerciseRoute may require additional permissions
 ];
 
@@ -280,6 +282,76 @@ async function getHeartRateRecords(
 }
 
 /**
+ * Query total calories burned for a session time window
+ */
+async function getCaloriesForSession(
+  startTime: Date,
+  endTime: Date
+): Promise<number | undefined> {
+  if (!HealthConnect) return undefined;
+
+  try {
+    const result = await HealthConnect.readRecords('TotalCaloriesBurned', {
+      timeRangeFilter: {
+        operator: 'between',
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      },
+    });
+
+    if (!result?.records || result.records.length === 0) return undefined;
+
+    // Sum all calorie records in the time window
+    let totalCalories = 0;
+    for (const record of result.records) {
+      if (record.energy?.inKilocalories != null) {
+        totalCalories += record.energy.inKilocalories;
+      }
+    }
+
+    return totalCalories > 0 ? Math.round(totalCalories) : undefined;
+  } catch (e) {
+    console.warn('[AndroidHealthService] Failed to get calories:', e);
+    return undefined;
+  }
+}
+
+/**
+ * Query distance for a session time window
+ */
+async function getDistanceForSession(
+  startTime: Date,
+  endTime: Date
+): Promise<number | undefined> {
+  if (!HealthConnect) return undefined;
+
+  try {
+    const result = await HealthConnect.readRecords('Distance', {
+      timeRangeFilter: {
+        operator: 'between',
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      },
+    });
+
+    if (!result?.records || result.records.length === 0) return undefined;
+
+    // Sum all distance records in the time window (in meters)
+    let totalDistance = 0;
+    for (const record of result.records) {
+      if (record.distance?.inMeters != null) {
+        totalDistance += record.distance.inMeters;
+      }
+    }
+
+    return totalDistance > 0 ? totalDistance : undefined;
+  } catch (e) {
+    console.warn('[AndroidHealthService] Failed to get distance:', e);
+    return undefined;
+  }
+}
+
+/**
  * Query new workouts since the last sync date
  *
  * @param lastSyncDate - Only return workouts after this date
@@ -322,14 +394,18 @@ export async function queryNewWorkouts(
         // Get heart rate samples for this session
         const heartRateSamples = await getHeartRateRecords(startTime, endTime);
 
+        // Get calories and distance from separate Health Connect record types
+        const calories = await getCaloriesForSession(startTime, endTime);
+        const distance = await getDistanceForSession(startTime, endTime);
+
         const activity: StandardizedActivity = {
           externalId: session.metadata?.id,
           activityName: mapExerciseType(session.exerciseType || 0),
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           duration,
-          // Note: Calories and distance may need to be read from separate record types
-          // depending on how the source app records them
+          calories,
+          distance,
           heartRateSamples,
           source: 'health_connect',
         };

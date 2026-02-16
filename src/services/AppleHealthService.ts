@@ -1,21 +1,22 @@
 /**
  * Apple Health Service
  *
- * iOS HealthKit bridge for querying workouts with heart rate and GPS data.
- * Uses react-native-health library.
+ * iOS HealthKit bridge for querying workouts with heart rate and GPS route data.
+ * Uses @kingstinct/react-native-healthkit library for full HealthKit API access
+ * including HKWorkoutRouteQuery for GPS route extraction.
  */
 
 import { Platform } from 'react-native';
-import type { WorkoutData, HeartRateSample, RoutePoint } from '../types/health';
+import type { HeartRateSample, RoutePoint } from '../types/health';
 
-// Conditionally import HealthKit (only works in development builds)
-let AppleHealthKit: any = null;
+// Conditionally import HealthKit (only works on iOS development builds)
+let HealthKit: any = null;
 
 if (Platform.OS === 'ios') {
   try {
-    AppleHealthKit = require('react-native-health').default;
+    HealthKit = require('@kingstinct/react-native-healthkit');
   } catch (e) {
-    console.warn('[AppleHealthService] react-native-health not available');
+    console.warn('[AppleHealthService] @kingstinct/react-native-healthkit not available');
   }
 }
 
@@ -36,7 +37,7 @@ export interface StandardizedActivity {
 }
 
 /**
- * HealthKit workout type identifiers
+ * HealthKit workout activity type identifiers
  */
 const WORKOUT_ACTIVITY_TYPES: Record<string, string> = {
   'HKWorkoutActivityTypeRunning': 'Running',
@@ -71,75 +72,71 @@ async function getHeartRateSamples(
   startDate: Date,
   endDate: Date
 ): Promise<HeartRateSample[]> {
-  return new Promise((resolve, reject) => {
-    if (!AppleHealthKit) {
-      resolve([]);
-      return;
-    }
+  if (!HealthKit) return [];
 
-    const options = {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      ascending: true,
-    };
-
-    AppleHealthKit.getHeartRateSamples(options, (err: any, results: any[]) => {
-      if (err) {
-        console.warn('[AppleHealthService] Failed to get heart rate samples:', err);
-        resolve([]);
-        return;
+  try {
+    const result = await HealthKit.queryQuantitySamples(
+      'HKQuantityTypeIdentifierHeartRate',
+      {
+        from: startDate,
+        to: endDate,
+        ascending: true,
       }
+    );
 
-      const samples: HeartRateSample[] = results.map((sample) => ({
-        timestamp: new Date(sample.startDate),
-        bpm: Math.round(sample.value),
-      }));
+    if (!result?.samples) return [];
 
-      resolve(samples);
-    });
-  });
+    return result.samples.map((sample: any) => ({
+      timestamp: new Date(sample.startDate),
+      bpm: Math.round(sample.quantity),
+    }));
+  } catch (e) {
+    console.warn('[AppleHealthService] Failed to get heart rate samples:', e);
+    return [];
+  }
 }
 
 /**
- * Query GPS route for a workout (if available)
- * Note: Workout routes require specific entitlements and may not be available
+ * Query GPS route data for a workout using HKWorkoutRouteQuery
+ *
+ * @kingstinct/react-native-healthkit provides getWorkoutRoutes() which uses
+ * the native HKWorkoutRouteQuery to extract CLLocation data (lat, lng,
+ * altitude, timestamp) from workout route samples.
  */
-async function getWorkoutRoute(
-  workoutId: string,
-  startDate: Date,
-  endDate: Date
-): Promise<RoutePoint[]> {
-  // Workout routes in HealthKit are complex to access
-  // For now, we'll attempt to get location data from the workout
-  // Full route implementation requires HKWorkoutRouteQuery
-  return new Promise((resolve) => {
-    if (!AppleHealthKit) {
-      resolve([]);
-      return;
+async function getWorkoutRoute(workout: any): Promise<RoutePoint[]> {
+  if (!HealthKit || !HealthKit.getWorkoutRoutes) return [];
+
+  try {
+    const routes = await HealthKit.getWorkoutRoutes(workout);
+
+    if (!routes || routes.length === 0) return [];
+
+    const routePoints: RoutePoint[] = [];
+
+    for (const route of routes) {
+      if (route.locations) {
+        for (const location of route.locations) {
+          routePoints.push({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            altitude: location.altitude,
+            timestamp: new Date(location.timestamp),
+          });
+        }
+      }
     }
 
-    // Try to get distance walking/running samples which may include location
-    // This is a simplified approach - full GPS requires HKWorkoutRoute
-    const options = {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    };
-
-    AppleHealthKit.getDistanceWalkingRunning(options, (err: any, results: any) => {
-      if (err || !results?.value) {
-        resolve([]);
-        return;
-      }
-
-      // Note: This doesn't provide actual GPS coordinates
-      // Full GPS route extraction requires native module enhancement
-      resolve([]);
-    });
-  });
+    return routePoints;
+  } catch (e) {
+    console.warn('[AppleHealthService] Failed to get workout route:', e);
+    return [];
+  }
 }
 
 /**
  * Query new workouts since the last sync date
+ *
+ * Uses queryWorkoutSamples for workout data and getWorkoutRoutes for GPS routes.
  *
  * @param lastSyncDate - Only return workouts after this date
  * @returns Array of standardized activities ready for sync
@@ -147,114 +144,123 @@ async function getWorkoutRoute(
 export async function queryNewWorkouts(
   lastSyncDate: Date
 ): Promise<StandardizedActivity[]> {
-  return new Promise(async (resolve, reject) => {
-    if (!AppleHealthKit) {
-      console.warn('[AppleHealthService] HealthKit not available');
-      resolve([]);
-      return;
+  if (!HealthKit) {
+    console.warn('[AppleHealthService] HealthKit not available');
+    return [];
+  }
+
+  try {
+    const endDate = new Date();
+
+    const result = await HealthKit.queryWorkoutSamples({
+      from: lastSyncDate,
+      to: endDate,
+      ascending: true,
+    });
+
+    const workouts = result?.samples ?? result;
+
+    if (!workouts || (Array.isArray(workouts) && workouts.length === 0)) {
+      return [];
     }
 
-    const endDate = new Date();
-    const options = {
-      startDate: lastSyncDate.toISOString(),
-      endDate: endDate.toISOString(),
-      type: 'Workout',
-    };
+    const workoutArray = Array.isArray(workouts) ? workouts : [workouts];
+    console.log(`[AppleHealthService] Found ${workoutArray.length} workouts since ${lastSyncDate.toISOString()}`);
 
-    AppleHealthKit.getSamples(options, async (err: any, results: any[]) => {
-      if (err) {
-        console.error('[AppleHealthService] Failed to query workouts:', err);
-        reject(err);
-        return;
+    const activities: StandardizedActivity[] = [];
+
+    for (const workout of workoutArray) {
+      try {
+        const startTime = new Date(workout.startDate || workout.start);
+        const endTime = new Date(workout.endDate || workout.end);
+        const duration = workout.duration ||
+          (endTime.getTime() - startTime.getTime()) / 1000;
+
+        // Get heart rate samples for this workout window
+        const heartRateSamples = await getHeartRateSamples(startTime, endTime);
+
+        // Get GPS route data via HKWorkoutRouteQuery
+        const route = await getWorkoutRoute(workout);
+
+        const activity: StandardizedActivity = {
+          externalId: workout.uuid || workout.id,
+          activityName: mapActivityType(
+            workout.workoutActivityType || workout.activityName || workout.type || 'Workout'
+          ),
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          duration,
+          calories: workout.totalEnergyBurned
+            ? Math.round(workout.totalEnergyBurned)
+            : undefined,
+          distance: workout.totalDistance, // meters
+          heartRateSamples,
+          route: route.length > 0 ? route : undefined,
+          source: 'healthkit',
+        };
+
+        activities.push(activity);
+      } catch (e) {
+        console.warn('[AppleHealthService] Failed to process workout:', e);
       }
+    }
 
-      if (!results || results.length === 0) {
-        resolve([]);
-        return;
-      }
-
-      console.log(`[AppleHealthService] Found ${results.length} workouts since ${lastSyncDate.toISOString()}`);
-
-      const activities: StandardizedActivity[] = [];
-
-      for (const workout of results) {
-        try {
-          const startTime = new Date(workout.start || workout.startDate);
-          const endTime = new Date(workout.end || workout.endDate);
-          const duration = workout.duration ||
-            (endTime.getTime() - startTime.getTime()) / 1000;
-
-          // Get heart rate samples for this workout window
-          const heartRateSamples = await getHeartRateSamples(startTime, endTime);
-
-          // Get workout route if available
-          const route = await getWorkoutRoute(workout.id, startTime, endTime);
-
-          const activity: StandardizedActivity = {
-            externalId: workout.id || workout.uuid,
-            activityName: mapActivityType(workout.activityName || workout.type || 'Workout'),
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            duration,
-            calories: workout.calories ? Math.round(workout.calories) : undefined,
-            distance: workout.distance, // Already in meters
-            heartRateSamples,
-            route: route.length > 0 ? route : undefined,
-            source: 'healthkit',
-          };
-
-          activities.push(activity);
-        } catch (e) {
-          console.warn('[AppleHealthService] Failed to process workout:', e);
-        }
-      }
-
-      console.log(`[AppleHealthService] Processed ${activities.length} activities`);
-      resolve(activities);
-    });
-  });
+    console.log(`[AppleHealthService] Processed ${activities.length} activities`);
+    return activities;
+  } catch (e) {
+    console.error('[AppleHealthService] Failed to query workouts:', e);
+    return [];
+  }
 }
 
 /**
  * Check if HealthKit is available on this device
  */
 export function isHealthKitAvailable(): boolean {
-  return Platform.OS === 'ios' && AppleHealthKit !== null;
+  return Platform.OS === 'ios' && HealthKit !== null;
+}
+
+/**
+ * Check if HealthKit data is available (requires device check)
+ */
+export async function checkAvailability(): Promise<boolean> {
+  if (!HealthKit) return false;
+
+  try {
+    return await HealthKit.isHealthDataAvailable();
+  } catch (e) {
+    console.warn('[AppleHealthService] Failed to check availability:', e);
+    return false;
+  }
 }
 
 /**
  * Initialize HealthKit with required permissions
+ *
+ * Requests read access to workouts, heart rate, distance, calories,
+ * and workout routes (for GPS data).
  */
 export async function initializeHealthKit(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (!AppleHealthKit) {
-      resolve(false);
-      return;
-    }
+  if (!HealthKit) return false;
 
-    const permissions = {
-      permissions: {
-        read: [
-          'Workout',
-          'HeartRate',
-          'DistanceWalkingRunning',
-          'DistanceCycling',
-          'ActiveEnergyBurned',
-        ],
-      },
-    };
-
-    AppleHealthKit.initHealthKit(permissions, (err: any) => {
-      if (err) {
-        console.error('[AppleHealthService] Failed to initialize:', err);
-        resolve(false);
-        return;
-      }
-
-      console.log('[AppleHealthService] HealthKit initialized successfully');
-      resolve(true);
+  try {
+    await HealthKit.requestAuthorization({
+      toRead: [
+        'HKWorkoutTypeIdentifier',
+        'HKQuantityTypeIdentifierHeartRate',
+        'HKQuantityTypeIdentifierDistanceWalkingRunning',
+        'HKQuantityTypeIdentifierDistanceCycling',
+        'HKQuantityTypeIdentifierActiveEnergyBurned',
+        'HKSeriesTypeIdentifierWorkoutRoute',
+      ],
     });
-  });
+
+    console.log('[AppleHealthService] HealthKit authorization requested successfully');
+    return true;
+  } catch (e) {
+    console.error('[AppleHealthService] Failed to initialize:', e);
+    return false;
+  }
 }
 
 /**

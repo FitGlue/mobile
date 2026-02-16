@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -29,12 +29,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
       "package": "com.fitglue.mobile",
       "permissions": [
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_TOTAL_CALORIES_BURNED",
+        "android.permission.health.READ_DISTANCE",
         "android.permission.health.READ_EXERCISE_ROUTE"
       ]
     },

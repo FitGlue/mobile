@@ -7,16 +7,18 @@ import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { HealthPermissionStatus, WorkoutData } from '../types/health';
 
+export type { WorkoutData } from '../types/health';
+
 // Conditionally import platform-specific libraries
 // Note: These imports will only work in development builds, not Expo Go
-let AppleHealthKit: any = null;
+let HealthKitLib: any = null;
 let HealthConnect: any = null;
 
 if (Platform.OS === 'ios') {
   try {
-    AppleHealthKit = require('react-native-health').default;
+    HealthKitLib = require('@kingstinct/react-native-healthkit');
   } catch (e) {
-    console.warn('react-native-health not available. Run on a development build.');
+    console.warn('@kingstinct/react-native-healthkit not available. Run on a development build.');
   }
 }
 
@@ -51,30 +53,27 @@ export function useHealth(): UseHealthResult {
   // Initialize health services
   const initialize = useCallback(async (): Promise<boolean> => {
     try {
-      if (Platform.OS === 'ios' && AppleHealthKit) {
-        return new Promise((resolve, reject) => {
-          const options = {
-            permissions: {
-              read: [
-                'Workout',
-                'HeartRate',
-                'DistanceWalkingRunning',
-                'DistanceCycling',
-              ],
-            },
-          };
+      if (Platform.OS === 'ios' && HealthKitLib) {
+        const available = await HealthKitLib.isHealthDataAvailable();
+        if (!available) {
+          setError('HealthKit is not available on this device');
+          return false;
+        }
 
-          AppleHealthKit.initHealthKit(options, (err: any) => {
-            if (err) {
-              setError(`HealthKit initialization failed: ${err.message}`);
-              reject(err);
-              return;
-            }
-            setIsAvailable(true);
-            setIsInitialized(true);
-            resolve(true);
-          });
+        await HealthKitLib.requestAuthorization({
+          toRead: [
+            'HKWorkoutTypeIdentifier',
+            'HKQuantityTypeIdentifierHeartRate',
+            'HKQuantityTypeIdentifierDistanceWalkingRunning',
+            'HKQuantityTypeIdentifierDistanceCycling',
+            'HKQuantityTypeIdentifierActiveEnergyBurned',
+            'HKSeriesTypeIdentifierWorkoutRoute',
+          ],
         });
+
+        setIsAvailable(true);
+        setIsInitialized(true);
+        return true;
       }
 
       if (Platform.OS === 'android' && HealthConnect) {
@@ -100,6 +99,8 @@ export function useHealth(): UseHealthResult {
         const result = await HealthConnect.requestPermission([
           { accessType: 'read', recordType: 'ExerciseSession' },
           { accessType: 'read', recordType: 'HeartRate' },
+          { accessType: 'read', recordType: 'TotalCaloriesBurned' },
+          { accessType: 'read', recordType: 'Distance' },
           { accessType: 'read', recordType: 'ExerciseRoute' },
         ]);
 
@@ -114,13 +115,13 @@ export function useHealth(): UseHealthResult {
         return newPermissions;
       }
 
-      if (Platform.OS === 'ios' && AppleHealthKit) {
-        // On iOS, permissions are requested during initialization
-        // This returns the current status
+      if (Platform.OS === 'ios' && HealthKitLib) {
+        // On iOS, permissions are requested during initialization via requestAuthorization
+        // Including workout routes
         const newPermissions: HealthPermissionStatus = {
-          workouts: true, // Requested during init
+          workouts: true,
           heartRate: true,
-          routes: false, // iOS handles routes differently via workout routes
+          routes: true,
         };
         setPermissions(newPermissions);
         return newPermissions;
@@ -138,35 +139,28 @@ export function useHealth(): UseHealthResult {
   const getWorkouts = useCallback(
     async (startDate: Date, endDate: Date): Promise<WorkoutData[]> => {
       try {
-        if (Platform.OS === 'ios' && AppleHealthKit) {
-          return new Promise((resolve, reject) => {
-            AppleHealthKit.getSamples(
-              {
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-                type: 'Workout',
-              },
-              (err: any, results: any[]) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-
-                const workouts: WorkoutData[] = results.map((w) => ({
-                  id: w.id || String(Date.now()),
-                  type: w.activityName || 'Unknown',
-                  startDate: new Date(w.start),
-                  endDate: new Date(w.end),
-                  duration: w.duration || 0,
-                  distance: w.distance,
-                  calories: w.calories,
-                  source: 'healthkit',
-                }));
-
-                resolve(workouts);
-              }
-            );
+        if (Platform.OS === 'ios' && HealthKitLib) {
+          const result = await HealthKitLib.queryWorkoutSamples({
+            from: startDate,
+            to: endDate,
+            ascending: true,
           });
+
+          const samples = result?.samples ?? result;
+          const workoutArray = Array.isArray(samples) ? samples : samples ? [samples] : [];
+
+          const workouts: WorkoutData[] = workoutArray.map((w: any) => ({
+            id: w.uuid || w.id || String(Date.now()),
+            type: w.workoutActivityType || w.activityName || 'Unknown',
+            startDate: new Date(w.startDate || w.start),
+            endDate: new Date(w.endDate || w.end),
+            duration: w.duration || 0,
+            distance: w.totalDistance,
+            calories: w.totalEnergyBurned ? Math.round(w.totalEnergyBurned) : undefined,
+            source: 'healthkit',
+          }));
+
+          return workouts;
         }
 
         if (Platform.OS === 'android' && HealthConnect) {
@@ -203,7 +197,7 @@ export function useHealth(): UseHealthResult {
   // Check availability on mount
   useEffect(() => {
     if (Platform.OS === 'ios') {
-      setIsAvailable(AppleHealthKit != null);
+      setIsAvailable(HealthKitLib != null);
     } else if (Platform.OS === 'android') {
       setIsAvailable(HealthConnect != null);
     }

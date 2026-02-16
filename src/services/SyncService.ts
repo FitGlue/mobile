@@ -6,6 +6,7 @@
  */
 
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { auth } from '../config/firebase';
 import { apiConfig } from '../config/environment';
 import * as AppleHealthService from './AppleHealthService';
@@ -81,7 +82,7 @@ async function submitToBackend(
     device: {
       platform,
       osVersion: Platform.Version?.toString(),
-      appVersion: '1.0.0', // TODO: Get from app.json
+      appVersion: Constants.expoConfig?.version ?? '1.0.0',
     },
     sync: {
       batchId: `sync-${Date.now()}`,
@@ -118,6 +119,11 @@ async function submitToBackend(
     };
   } catch (e) {
     console.error('[SyncService] Network error:', e);
+
+    // Queue activities for retry on next sync
+    console.log(`[SyncService] Queuing ${activities.length} activities for retry`);
+    await StorageService.addToQueue(activities);
+
     return {
       success: false,
       processedCount: 0,
@@ -185,7 +191,16 @@ export async function performSync(): Promise<SyncResult> {
     };
   }
 
-  console.log(`[SyncService] Found ${activities.length} activities to sync`);
+  console.log(`[SyncService] Found ${activities.length} new activities to sync`);
+
+  // Prepend any queued activities from previous failed syncs
+  const queuedActivities = await StorageService.getQueuedActivities();
+  if (queuedActivities.length > 0) {
+    console.log(`[SyncService] Adding ${queuedActivities.length} queued activities from previous failures`);
+    activities.unshift(...queuedActivities);
+  }
+
+  console.log(`[SyncService] Submitting ${activities.length} total activities`);
 
   // Submit to backend
   const result = await submitToBackend(activities, platform, token);
@@ -193,6 +208,8 @@ export async function performSync(): Promise<SyncResult> {
   if (result.success) {
     const syncedAt = new Date();
     await StorageService.setLastSyncDate(syncedAt);
+    // Clear the offline queue on successful sync
+    await StorageService.clearQueue();
     console.log('[SyncService] Sync completed successfully');
     return {
       ...result,
