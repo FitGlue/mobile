@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../context/AuthContext';
 import { environment } from '../config/environment';
 
@@ -41,6 +42,7 @@ export function LoginScreen(): JSX.Element {
       return;
     }
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearError();
     await signIn(email.trim(), password);
   }, [email, password, signIn, clearError]);
@@ -171,8 +173,17 @@ export function LoginScreen(): JSX.Element {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By signing in, you agree to our Terms of Service and Privacy Policy.
+            By signing in, you agree to our{' '}
           </Text>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/terms')}>
+              <Text style={styles.footerLink}>Terms of Service</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerText}> and </Text>
+            <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/privacy')}>
+              <Text style={styles.footerLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -328,10 +339,21 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
   },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
   footerText: {
     color: '#555',
     fontSize: 12,
     textAlign: 'center',
+    lineHeight: 18,
+  },
+  footerLink: {
+    color: '#8338EC',
+    fontSize: 12,
     lineHeight: 18,
   },
 });

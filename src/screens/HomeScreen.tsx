@@ -2,10 +2,10 @@
  * FitGlue Mobile Home Screen
  *
  * Main dashboard for authenticated users.
- * Shows health sync status and recent activity.
+ * Shows health sync status, recent synced activities, and a link to the web dashboard.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,15 +15,22 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../context/AuthContext';
 import { useHealth, WorkoutData } from '../hooks/useHealth';
 import { environment } from '../config/environment';
+import * as StorageService from '../services/StorageService';
 
-export function HomeScreen(): JSX.Element {
-  const { user, signOut } = useAuth();
+interface HomeScreenProps {
+  navigation: any;
+}
+
+export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
+  const { user } = useAuth();
   const {
     isAvailable,
     isInitialized,
@@ -39,7 +46,13 @@ export function HomeScreen(): JSX.Element {
   const [refreshing, setRefreshing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
+  // Load last sync date on mount
+  useEffect(() => {
+    StorageService.getLastSyncDate().then(setLastSync);
+  }, []);
+
   const handleInitializeHealth = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
       const success = await initialize();
@@ -81,21 +94,36 @@ export function HomeScreen(): JSX.Element {
     setRefreshing(false);
   }, [handleFetchWorkouts]);
 
-  const handleSignOut = useCallback(async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: signOut },
-      ]
-    );
-  }, [signOut]);
+  const handleOpenDashboard = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const baseUrl = environment === 'production'
+      ? 'https://fitglue.tech'
+      : environment === 'test'
+        ? 'https://test.fitglue.tech'
+        : 'https://dev.fitglue.tech';
+    Linking.openURL(baseUrl);
+  }, []);
+
+  const handleOpenSettings = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('Settings');
+  }, [navigation]);
 
   const platformName = Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect';
-
-  // Get initials from email
   const userInitial = user?.email?.charAt(0)?.toUpperCase() || '?';
+
+  const formatSyncTime = (date: Date | null): string => {
+    if (!date) return 'Never synced';
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <View style={styles.container}>
@@ -109,14 +137,17 @@ export function HomeScreen(): JSX.Element {
             <Text style={styles.titleGlue}>Glue</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={handleSignOut}>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleOpenSettings} style={styles.settingsButton}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
           <LinearGradient
             colors={['#FF006E', '#8338EC']}
             style={styles.avatar}
           >
             <Text style={styles.avatarText}>{userInitial}</Text>
           </LinearGradient>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -142,6 +173,14 @@ export function HomeScreen(): JSX.Element {
         {/* Dashboard Title */}
         <Text style={styles.dashboardTitle}>Dashboard</Text>
         <Text style={styles.dashboardSubtitle}>Here's what's happening with your fitness data.</Text>
+
+        {/* Last Sync Status */}
+        <View style={styles.syncBanner}>
+          <View style={[styles.syncDot, lastSync ? styles.dotGreen : styles.dotAmber]} />
+          <Text style={styles.syncBannerText}>
+            Last sync: {formatSyncTime(lastSync)}
+          </Text>
+        </View>
 
         {/* Health Status Card */}
         <View style={styles.card}>
@@ -202,7 +241,7 @@ export function HomeScreen(): JSX.Element {
                 style={styles.gradientButton}
               >
                 <Text style={styles.buttonText}>
-                  {loading ? 'Connecting...' : `Connect to ${platformName}`}
+                  {loading ? 'Connecting…' : `Connect to ${platformName}`}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -228,20 +267,26 @@ export function HomeScreen(): JSX.Element {
 
             <TouchableOpacity
               style={[styles.outlineButton, loading && styles.buttonDisabled]}
-              onPress={handleFetchWorkouts}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleFetchWorkouts();
+              }}
               disabled={loading}
             >
               <Text style={styles.outlineButtonText}>
-                {loading ? 'Fetching...' : 'Fetch Workouts (Last 30 Days)'}
+                {loading ? 'Fetching…' : 'Fetch Workouts (Last 30 Days)'}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Workouts List */}
+        {/* Workouts List — Sent to FitGlue */}
         {workouts.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>🏋️ Recent Workouts</Text>
+            <Text style={styles.cardTitle}>🏋️ Sent to FitGlue</Text>
+            <Text style={styles.cardDescription}>
+              {workouts.length} workout{workouts.length !== 1 ? 's' : ''} from the last 30 days
+            </Text>
 
             {workouts.slice(0, 10).map((workout, index) => (
               <View key={workout.id || index} style={styles.workoutItem}>
@@ -277,6 +322,28 @@ export function HomeScreen(): JSX.Element {
           </View>
         )}
 
+        {/* Dashboard Link */}
+        <TouchableOpacity
+          style={styles.dashboardLink}
+          onPress={handleOpenDashboard}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={['rgba(255, 0, 110, 0.1)', 'rgba(131, 56, 236, 0.1)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.dashboardLinkInner}
+          >
+            <View>
+              <Text style={styles.dashboardLinkTitle}>Open FitGlue Dashboard</Text>
+              <Text style={styles.dashboardLinkSubtitle}>
+                View enriched activities, manage pipelines, and more
+              </Text>
+            </View>
+            <Text style={styles.dashboardLinkArrow}>→</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Info Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -307,6 +374,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   titleRow: {
     flexDirection: 'row',
   },
@@ -319,6 +391,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#8338EC',
+  },
+  settingsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: {
+    fontSize: 18,
   },
   avatar: {
     width: 40,
@@ -368,7 +451,26 @@ const styles = StyleSheet.create({
   dashboardSubtitle: {
     fontSize: 15,
     color: '#888',
+    marginBottom: 12,
+  },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginBottom: 20,
+    gap: 8,
+  },
+  syncDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  syncBannerText: {
+    fontSize: 13,
+    color: '#aaa',
   },
   card: {
     backgroundColor: 'rgba(26, 26, 26, 0.9)',
@@ -415,6 +517,9 @@ const styles = StyleSheet.create({
   },
   dotRed: {
     backgroundColor: '#ef4444',
+  },
+  dotAmber: {
+    backgroundColor: '#f59e0b',
   },
   checkmark: {
     color: '#14b8a6',
@@ -502,6 +607,34 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 13,
     marginTop: 12,
+  },
+  dashboardLink: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 110, 0.2)',
+  },
+  dashboardLinkInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dashboardLinkTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF006E',
+    marginBottom: 4,
+  },
+  dashboardLinkSubtitle: {
+    fontSize: 13,
+    color: '#888',
+  },
+  dashboardLinkArrow: {
+    fontSize: 20,
+    color: '#FF006E',
+    marginLeft: 12,
   },
   footer: {
     alignItems: 'center',

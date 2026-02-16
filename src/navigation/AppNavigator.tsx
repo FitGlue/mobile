@@ -5,6 +5,7 @@
  * 1. Onboarding carousel (first launch)
  * 2. Login screen (unauthenticated)
  * 3. Home screen (authenticated)
+ * 4. Settings screen (from home)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import { LoginScreen, HomeScreen, OnboardingScreen } from '../screens';
+import { LoginScreen, HomeScreen, OnboardingScreen, SettingsScreen } from '../screens';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
 
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Home: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -66,7 +68,14 @@ export function AppNavigator(): JSX.Element {
       >
         {isAuthenticated ? (
           // Authenticated stack
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+          </>
         ) : hasSeenOnboarding ? (
           // Seen onboarding, show login
           <Stack.Screen name="Login" component={LoginScreen} />

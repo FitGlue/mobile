@@ -5,15 +5,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "primaryColor": "#FF006E",
+    "description": "FitGlue connects your fitness apps. Sync workouts from Apple Health and Health Connect to Strava, Garmin, Hevy, and more — automatically enriched with heart rate zones, pace analysis, and personal records.",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0d0d0d"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fitglue.mobile",
+      "buildNumber": "1",
       "infoPlist": {
         "NSHealthShareUsageDescription": "FitGlue needs access to read your health data including workouts, heart rate, and GPS routes to sync with your connected services.",
         "NSHealthUpdateUsageDescription": "FitGlue needs access to write workout data to Apple Health."
@@ -26,9 +29,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0d0d0d"
       },
       "package": "com.fitglue.mobile",
+      "versionCode": 1,
       "permissions": [
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_HEART_RATE",
