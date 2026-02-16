@@ -130,4 +130,5 @@ export const endpoints = {
 
   // Mobile-specific
   mobileSync: '/api/mobile/sync',
+  mobileConnect: (provider: string) => `/api/mobile/connect/${provider}`,
 };

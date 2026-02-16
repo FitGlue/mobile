@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { HealthPermissionStatus, WorkoutData } from '../types/health';
+import { post, endpoints } from '../config/api';
 
 export type { WorkoutData } from '../types/health';
 
@@ -124,6 +125,12 @@ export function useHealth(): UseHealthResult {
         };
 
         setPermissions(newPermissions);
+
+        // Register integration as connected in the backend (fire-and-forget)
+        if (newPermissions.workouts) {
+          post(endpoints.mobileConnect('health-connect')).catch(() => { });
+        }
+
         return newPermissions;
       }
 
@@ -134,6 +141,10 @@ export function useHealth(): UseHealthResult {
           routes: true,
         };
         setPermissions(newPermissions);
+
+        // Register integration as connected in the backend (fire-and-forget)
+        post(endpoints.mobileConnect('apple-health')).catch(() => { });
+
         return newPermissions;
       }
 
