@@ -20,6 +20,7 @@ import {
   Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { environment } from '../config/environment';
 
@@ -65,9 +66,11 @@ export function LoginScreen(): JSX.Element {
       >
         {/* Logo and Title */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🔗</Text>
-          <Text style={styles.title}>FitGlue</Text>
-          <Text style={styles.subtitle}>Sign in to sync your workouts</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.titleFit}>Fit</Text>
+            <Text style={styles.titleGlue}>Glue</Text>
+          </View>
+          <Text style={styles.subtitle}>Welcome back 👋</Text>
         </View>
 
         {/* Environment Badge (dev/test only) */}
@@ -79,21 +82,21 @@ export function LoginScreen(): JSX.Element {
           </View>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+        {/* Login Card */}
+        <View style={styles.card}>
+          {/* Error Message */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-        {/* Login Form */}
-        <View style={styles.form}>
+          {/* Login Form */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor="#999"
+              placeholder="Email"
+              placeholderTextColor="#666"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -105,12 +108,11 @@ export function LoginScreen(): JSX.Element {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[styles.input, styles.passwordInput]}
-                placeholder="••••••••"
-                placeholderTextColor="#999"
+                placeholder="Password"
+                placeholderTextColor="#666"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -138,15 +140,23 @@ export function LoginScreen(): JSX.Element {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={[styles.buttonWrapper, isLoading && styles.buttonDisabled]}
             onPress={handleSignIn}
             disabled={isLoading}
+            activeOpacity={0.8}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
+            <LinearGradient
+              colors={['#FF006E', '#8338EC']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientButton}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>LOGIN</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -154,7 +164,7 @@ export function LoginScreen(): JSX.Element {
         <View style={styles.registerContainer}>
           <Text style={styles.registerText}>Don't have an account?</Text>
           <TouchableOpacity onPress={handleRegisterLink}>
-            <Text style={styles.registerLink}>Register at fitglue.tech</Text>
+            <Text style={styles.registerLink}>Register</Text>
           </TouchableOpacity>
         </View>
 
@@ -172,7 +182,7 @@ export function LoginScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a', // Dark slate background
+    backgroundColor: '#0d0d0d',
   },
   scrollContent: {
     flexGrow: 1,
@@ -187,64 +197,73 @@ const styles = StyleSheet.create({
     fontSize: 64,
     marginBottom: 16,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#14b8a6', // Teal
+  titleRow: {
+    flexDirection: 'row',
     marginBottom: 8,
   },
+  titleFit: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FF006E', // Pink — exact web value
+  },
+  titleGlue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#8338EC', // Purple — exact web value
+  },
   subtitle: {
-    fontSize: 16,
-    color: '#94a3b8', // Slate 400
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginTop: 4,
   },
   envBadge: {
     alignSelf: 'center',
-    backgroundColor: '#f59e0b', // Amber
+    backgroundColor: 'rgba(255, 0, 110, 0.15)',
+    borderWidth: 1,
+    borderColor: '#FF006E',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 24,
   },
   envBadgeText: {
-    color: '#fff',
+    color: '#e91e63',
     fontSize: 12,
     fontWeight: 'bold',
   },
-  errorContainer: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  card: {
+    backgroundColor: 'rgba(26, 26, 26, 0.9)',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#ef4444',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   errorText: {
     color: '#ef4444',
     fontSize: 14,
     textAlign: 'center',
   },
-  form: {
-    width: '100%',
-    marginBottom: 24,
-  },
   inputContainer: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#e2e8f0', // Slate 200
-    marginBottom: 8,
-  },
   input: {
-    backgroundColor: '#1e293b', // Slate 800
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: '#334155', // Slate 700
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 10,
-    padding: 14,
+    padding: 16,
     fontSize: 16,
-    color: '#f8fafc', // Slate 50
+    color: '#ffffff',
   },
   passwordContainer: {
     position: 'relative',
@@ -254,13 +273,13 @@ const styles = StyleSheet.create({
   },
   passwordToggle: {
     position: 'absolute',
-    right: 14,
+    right: 16,
     top: 0,
     bottom: 0,
     justifyContent: 'center',
   },
   passwordToggleText: {
-    color: '#14b8a6',
+    color: '#8338EC',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -269,14 +288,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: '#14b8a6',
+    color: '#8338EC',
     fontSize: 14,
   },
-  button: {
-    backgroundColor: '#14b8a6',
-    paddingVertical: 16,
+  buttonWrapper: {
     borderRadius: 10,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    paddingVertical: 16,
     alignItems: 'center',
+    borderRadius: 10,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -285,18 +307,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    letterSpacing: 1,
   },
   registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
     marginBottom: 24,
   },
   registerText: {
-    color: '#94a3b8',
+    color: '#888',
     fontSize: 14,
-    marginBottom: 4,
   },
   registerLink: {
-    color: '#14b8a6',
+    color: '#8338EC',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -304,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: '#64748b', // Slate 500
+    color: '#555',
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,

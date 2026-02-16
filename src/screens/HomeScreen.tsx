@@ -17,6 +17,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { useHealth, WorkoutData } from '../hooks/useHealth';
 import { environment } from '../config/environment';
@@ -93,20 +94,32 @@ export function HomeScreen(): JSX.Element {
 
   const platformName = Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect';
 
+  // Get initials from email
+  const userInitial = user?.email?.charAt(0)?.toUpperCase() || '?';
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.titleRow}>
+            <Text style={styles.titleFit}>Fit</Text>
+            <Text style={styles.titleGlue}>Glue</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
+        <TouchableOpacity onPress={handleSignOut}>
+          <LinearGradient
+            colors={['#FF006E', '#8338EC']}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>{userInitial}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.divider} />
 
       {/* Environment Badge */}
       {environment !== 'production' && (
@@ -122,40 +135,51 @@ export function HomeScreen(): JSX.Element {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#14b8a6"
+            tintColor="#FF006E"
           />
         }
       >
+        {/* Dashboard Title */}
+        <Text style={styles.dashboardTitle}>Dashboard</Text>
+        <Text style={styles.dashboardSubtitle}>Here's what's happening with your fitness data.</Text>
+
         {/* Health Status Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{platformName} Status</Text>
+          <Text style={styles.cardTitle}>
+            🏥 {platformName}
+          </Text>
+          <Text style={styles.cardDescription}>
+            {isInitialized
+              ? 'Your health data is connected and ready to sync.'
+              : `Connect to ${platformName} to start syncing your workouts.`}
+          </Text>
 
           <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Available:</Text>
-            <Text style={[styles.statusValue, isAvailable ? styles.statusGreen : styles.statusRed]}>
-              {isAvailable ? 'Yes' : 'No'}
-            </Text>
+            <Text style={styles.statusLabel}>Available</Text>
+            <View style={[styles.statusDot, isAvailable ? styles.dotGreen : styles.dotRed]} />
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Initialized:</Text>
-            <Text style={[styles.statusValue, isInitialized ? styles.statusGreen : styles.statusRed]}>
-              {isInitialized ? 'Yes' : 'No'}
-            </Text>
+            <Text style={styles.statusLabel}>Initialized</Text>
+            <View style={[styles.statusDot, isInitialized ? styles.dotGreen : styles.dotRed]} />
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Workouts:</Text>
-            <Text style={[styles.statusValue, permissions.workouts ? styles.statusGreen : styles.statusRed]}>
-              {permissions.workouts ? 'Granted' : 'Not Granted'}
-            </Text>
+            <Text style={styles.statusLabel}>Workouts</Text>
+            {permissions.workouts ? (
+              <Text style={styles.checkmark}>✓</Text>
+            ) : (
+              <View style={styles.emptyCircle} />
+            )}
           </View>
 
           <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Heart Rate:</Text>
-            <Text style={[styles.statusValue, permissions.heartRate ? styles.statusGreen : styles.statusRed]}>
-              {permissions.heartRate ? 'Granted' : 'Not Granted'}
-            </Text>
+            <Text style={styles.statusLabel}>Heart Rate</Text>
+            {permissions.heartRate ? (
+              <Text style={styles.checkmark}>✓</Text>
+            ) : (
+              <View style={styles.emptyCircle} />
+            )}
           </View>
 
           {healthError && (
@@ -166,13 +190,21 @@ export function HomeScreen(): JSX.Element {
 
           {!isInitialized && (
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.buttonWrapper, loading && styles.buttonDisabled]}
               onPress={handleInitializeHealth}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>
-                {loading ? 'Connecting...' : `Connect to ${platformName}`}
-              </Text>
+              <LinearGradient
+                colors={['#FF006E', '#8338EC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Connecting...' : `Connect to ${platformName}`}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -180,26 +212,26 @@ export function HomeScreen(): JSX.Element {
         {/* Sync Card */}
         {isInitialized && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Sync Status</Text>
+            <Text style={styles.cardTitle}>📡 Sync Status</Text>
 
-            <View style={styles.syncInfo}>
-              <Text style={styles.syncLabel}>Last Sync:</Text>
-              <Text style={styles.syncValue}>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Last Sync</Text>
+              <Text style={styles.statusValue}>
                 {lastSync ? lastSync.toLocaleString() : 'Never'}
               </Text>
             </View>
 
-            <View style={styles.syncInfo}>
-              <Text style={styles.syncLabel}>Workouts Found:</Text>
-              <Text style={styles.syncValue}>{workouts.length}</Text>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Workouts Found</Text>
+              <Text style={styles.statusValue}>{workouts.length}</Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.button, styles.buttonSecondary, loading && styles.buttonDisabled]}
+              style={[styles.outlineButton, loading && styles.buttonDisabled]}
               onPress={handleFetchWorkouts}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
+              <Text style={styles.outlineButtonText}>
                 {loading ? 'Fetching...' : 'Fetch Workouts (Last 30 Days)'}
               </Text>
             </TouchableOpacity>
@@ -209,7 +241,7 @@ export function HomeScreen(): JSX.Element {
         {/* Workouts List */}
         {workouts.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Recent Workouts</Text>
+            <Text style={styles.cardTitle}>🏋️ Recent Workouts</Text>
 
             {workouts.slice(0, 10).map((workout, index) => (
               <View key={workout.id || index} style={styles.workoutItem}>
@@ -248,10 +280,9 @@ export function HomeScreen(): JSX.Element {
         {/* Info Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            📡 Background sync is {isInitialized ? 'enabled' : 'disabled'}.
-          </Text>
-          <Text style={styles.footerText}>
-            Health features require a development build.
+            {isInitialized
+              ? '✨ Your workouts are being synced and enhanced automatically.'
+              : '📱 Connect a health source above to get started.'}
           </Text>
         </View>
       </ScrollView>
@@ -262,7 +293,7 @@ export function HomeScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0d0d0d',
   },
   header: {
     flexDirection: 'row',
@@ -271,42 +302,53 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#1e293b',
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
-  greeting: {
-    fontSize: 14,
-    color: '#94a3b8',
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  email: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#f8fafc',
-    marginTop: 2,
+  titleRow: {
+    flexDirection: 'row',
   },
-  signOutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ef4444',
+  titleFit: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF006E',
   },
-  signOutText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
+  titleGlue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#8338EC',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 20,
   },
   envBadge: {
     alignSelf: 'center',
-    backgroundColor: '#f59e0b',
+    backgroundColor: 'rgba(255, 0, 110, 0.15)',
+    borderWidth: 1,
+    borderColor: '#FF006E',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 12,
   },
   envBadgeText: {
-    color: '#fff',
+    color: '#FF006E',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -317,59 +359,95 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  dashboardTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  dashboardSubtitle: {
+    fontSize: 15,
+    color: '#888',
+    marginBottom: 20,
+  },
   card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'rgba(26, 26, 26, 0.9)',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: '#ffffff',
+    marginBottom: 6,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#888',
     marginBottom: 16,
+    lineHeight: 20,
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 14,
   },
   statusLabel: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: 15,
+    color: '#aaa',
   },
   statusValue: {
-    fontSize: 14,
+    fontSize: 15,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dotGreen: {
+    backgroundColor: '#22c55e',
+  },
+  dotRed: {
+    backgroundColor: '#ef4444',
+  },
+  checkmark: {
+    color: '#14b8a6',
+    fontSize: 18,
     fontWeight: '600',
   },
-  statusGreen: {
-    color: '#22c55e',
-  },
-  statusRed: {
-    color: '#ef4444',
+  emptyCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#555',
   },
   errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 8,
     padding: 12,
-    marginTop: 8,
+    marginTop: 4,
     marginBottom: 8,
   },
   errorText: {
     color: '#ef4444',
     fontSize: 13,
   },
-  button: {
-    backgroundColor: '#14b8a6',
-    paddingVertical: 14,
+  buttonWrapper: {
     borderRadius: 10,
-    alignItems: 'center',
+    overflow: 'hidden',
     marginTop: 12,
   },
-  buttonSecondary: {
-    backgroundColor: '#0d9488',
+  gradientButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 10,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -379,24 +457,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  syncInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+  outlineButton: {
+    borderWidth: 1,
+    borderColor: '#FF006E',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
   },
-  syncLabel: {
-    fontSize: 14,
-    color: '#94a3b8',
-  },
-  syncValue: {
-    fontSize: 14,
-    color: '#f8fafc',
-    fontWeight: '500',
+  outlineButtonText: {
+    color: '#FF006E',
+    fontSize: 15,
+    fontWeight: '600',
   },
   workoutItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   workoutHeader: {
     flexDirection: 'row',
@@ -406,11 +483,11 @@ const styles = StyleSheet.create({
   workoutType: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#14b8a6',
+    color: '#FF006E',
   },
   workoutDate: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#888',
   },
   workoutStats: {
     flexDirection: 'row',
@@ -418,11 +495,11 @@ const styles = StyleSheet.create({
   },
   workoutStat: {
     fontSize: 13,
-    color: '#cbd5e1',
+    color: '#ccc',
   },
   moreWorkouts: {
     textAlign: 'center',
-    color: '#64748b',
+    color: '#666',
     fontSize: 13,
     marginTop: 12,
   },
@@ -432,7 +509,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#555',
     textAlign: 'center',
     marginBottom: 4,
   },

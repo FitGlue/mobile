@@ -50,9 +50,26 @@ export function useHealth(): UseHealthResult {
   });
   const [error, setError] = useState<string | null>(null);
 
+  // Safe wrapper for native module calls — ensures errors are caught
+  // even if the native module throws synchronously
+  const safeNativeCall = useCallback(async <T>(
+    label: string,
+    fn: () => Promise<T>,
+    fallback: T
+  ): Promise<T> => {
+    try {
+      return await fn();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(`[useHealth] ${label} failed:`, message);
+      setError(`${label}: ${message}`);
+      return fallback;
+    }
+  }, []);
+
   // Initialize health services
   const initialize = useCallback(async (): Promise<boolean> => {
-    try {
+    return safeNativeCall('Initialize', async () => {
       if (Platform.OS === 'ios' && HealthKitLib) {
         const available = await HealthKitLib.isHealthDataAvailable();
         if (!available) {
@@ -85,30 +102,25 @@ export function useHealth(): UseHealthResult {
 
       setError('Health services not available on this platform');
       return false;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error';
-      setError(`Initialization failed: ${message}`);
-      return false;
-    }
-  }, []);
+    }, false);
+  }, [safeNativeCall]);
 
   // Request permissions
   const requestPermissions = useCallback(async (): Promise<HealthPermissionStatus> => {
-    try {
+    return safeNativeCall('Request permissions', async () => {
       if (Platform.OS === 'android' && HealthConnect) {
         const result = await HealthConnect.requestPermission([
           { accessType: 'read', recordType: 'ExerciseSession' },
           { accessType: 'read', recordType: 'HeartRate' },
           { accessType: 'read', recordType: 'TotalCaloriesBurned' },
           { accessType: 'read', recordType: 'Distance' },
-          { accessType: 'read', recordType: 'ExerciseRoute' },
         ]);
 
         // Parse granted permissions
         const newPermissions: HealthPermissionStatus = {
           workouts: result.some((p: any) => p.recordType === 'ExerciseSession'),
           heartRate: result.some((p: any) => p.recordType === 'HeartRate'),
-          routes: result.some((p: any) => p.recordType === 'ExerciseRoute'),
+          routes: false, // Routes accessed via requestExerciseRoute() per-session
         };
 
         setPermissions(newPermissions);
@@ -116,8 +128,6 @@ export function useHealth(): UseHealthResult {
       }
 
       if (Platform.OS === 'ios' && HealthKitLib) {
-        // On iOS, permissions are requested during initialization via requestAuthorization
-        // Including workout routes
         const newPermissions: HealthPermissionStatus = {
           workouts: true,
           heartRate: true,
@@ -128,17 +138,13 @@ export function useHealth(): UseHealthResult {
       }
 
       return permissions;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error';
-      setError(`Permission request failed: ${message}`);
-      return permissions;
-    }
-  }, [permissions]);
+    }, permissions);
+  }, [permissions, safeNativeCall]);
 
   // Get workouts
   const getWorkouts = useCallback(
     async (startDate: Date, endDate: Date): Promise<WorkoutData[]> => {
-      try {
+      return safeNativeCall('Get workouts', async () => {
         if (Platform.OS === 'ios' && HealthKitLib) {
           const result = await HealthKitLib.queryWorkoutSamples({
             from: startDate,
@@ -172,7 +178,7 @@ export function useHealth(): UseHealthResult {
             },
           });
 
-          const workouts: WorkoutData[] = result.records.map((w: any) => ({
+          const workouts: WorkoutData[] = (result?.records ?? []).map((w: any) => ({
             id: w.metadata?.id || String(Date.now()),
             type: w.exerciseType || 'Unknown',
             startDate: new Date(w.startTime),
@@ -185,13 +191,9 @@ export function useHealth(): UseHealthResult {
         }
 
         return [];
-      } catch (e) {
-        const message = e instanceof Error ? e.message : 'Unknown error';
-        setError(`Failed to get workouts: ${message}`);
-        return [];
-      }
+      }, []);
     },
-    []
+    [safeNativeCall]
   );
 
   // Check availability on mount
