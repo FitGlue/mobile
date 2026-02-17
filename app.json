@@ -19,7 +19,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSHealthShareUsageDescription": "FitGlue needs access to read your health data including workouts, heart rate, and GPS routes to sync with your connected services.",
-        "NSHealthUpdateUsageDescription": "FitGlue needs access to write workout data to Apple Health."
+        "NSHealthUpdateUsageDescription": "FitGlue needs access to write workout data to Apple Health.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,

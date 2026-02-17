@@ -39,29 +39,72 @@ export interface StandardizedActivity {
 /**
  * HealthKit workout activity type identifiers
  */
-const WORKOUT_ACTIVITY_TYPES: Record<string, string> = {
+export const WORKOUT_ACTIVITY_TYPES: Record<string, string> = {
+  // Cardio
   'HKWorkoutActivityTypeRunning': 'Running',
   'HKWorkoutActivityTypeWalking': 'Walking',
   'HKWorkoutActivityTypeCycling': 'Cycling',
   'HKWorkoutActivityTypeSwimming': 'Swimming',
+  'HKWorkoutActivityTypeMixedCardio': 'Cardio',
+  'HKWorkoutActivityTypeHighIntensityIntervalTraining': 'HIIT',
+  'HKWorkoutActivityTypeJumpRope': 'JumpRope',
+  'HKWorkoutActivityTypeDance': 'Dancing',
+  // Strength
   'HKWorkoutActivityTypeTraditionalStrengthTraining': 'WeightTraining',
   'HKWorkoutActivityTypeFunctionalStrengthTraining': 'WeightTraining',
+  'HKWorkoutActivityTypeCoreTraining': 'CoreTraining',
+  'HKWorkoutActivityTypeCrossTraining': 'CrossTraining',
+  'HKWorkoutActivityTypeFlexibility': 'Stretching',
+  // Equipment
   'HKWorkoutActivityTypeElliptical': 'Elliptical',
   'HKWorkoutActivityTypeRowing': 'Rowing',
   'HKWorkoutActivityTypeStairClimbing': 'StairClimbing',
+  // Mind & Body
   'HKWorkoutActivityTypeYoga': 'Yoga',
+  'HKWorkoutActivityTypePilates': 'Pilates',
+  'HKWorkoutActivityTypeMindAndBody': 'Meditation',
+  // Outdoor
   'HKWorkoutActivityTypeHiking': 'Hiking',
-  'HKWorkoutActivityTypeCrossTraining': 'CrossTraining',
-  'HKWorkoutActivityTypeMixedCardio': 'Cardio',
-  'HKWorkoutActivityTypeHighIntensityIntervalTraining': 'HIIT',
-  'HKWorkoutActivityTypeCoreTraining': 'CoreTraining',
-  'HKWorkoutActivityTypeFlexibility': 'Flexibility',
+  'HKWorkoutActivityTypeSurfingSports': 'Surfing',
+  'HKWorkoutActivityTypeSailing': 'Sailing',
+  'HKWorkoutActivityTypePaddleSports': 'StandUpPaddling',
+  'HKWorkoutActivityTypeClimbing': 'RockClimbing',
+  'HKWorkoutActivityTypeEquestrianSports': 'HorsebackRiding',
+  // Winter
+  'HKWorkoutActivityTypeDownhillSkiing': 'AlpineSki',
+  'HKWorkoutActivityTypeCrossCountrySkiing': 'NordicSki',
+  'HKWorkoutActivityTypeSnowboarding': 'Snowboarding',
+  'HKWorkoutActivityTypeSnowSports': 'Snowboarding',
+  'HKWorkoutActivityTypeSkatingSports': 'IceSkating',
+  // Racket Sports
+  'HKWorkoutActivityTypeTennis': 'Tennis',
+  'HKWorkoutActivityTypeTableTennis': 'TableTennis',
+  'HKWorkoutActivityTypeBadminton': 'Badminton',
+  'HKWorkoutActivityTypeSquash': 'Squash',
+  'HKWorkoutActivityTypeRacquetball': 'Racquetball',
+  'HKWorkoutActivityTypePickleball': 'Pickleball',
+  // Team Sports
+  'HKWorkoutActivityTypeSoccer': 'Soccer',
+  'HKWorkoutActivityTypeBasketball': 'Basketball',
+  'HKWorkoutActivityTypeVolleyball': 'Volleyball',
+  'HKWorkoutActivityTypeHandball': 'Handball',
+  'HKWorkoutActivityTypeRugby': 'Rugby',
+  // Combat
+  'HKWorkoutActivityTypeMartialArts': 'MartialArts',
+  'HKWorkoutActivityTypeBoxing': 'Boxing',
+  // Other
+  'HKWorkoutActivityTypeGolf': 'Golf',
+  'HKWorkoutActivityTypeGymnastics': 'Gymnastics',
+  'HKWorkoutActivityTypeWaterSports': 'Swimming',
+  'HKWorkoutActivityTypeWheelchairWalkPace': 'Wheelchair',
+  'HKWorkoutActivityTypeWheelchairRunPace': 'Wheelchair',
+  'HKWorkoutActivityTypeOther': 'Workout',
 };
 
 /**
  * Map HealthKit activity type to readable name
  */
-function mapActivityType(hkType: string): string {
+export function mapActivityType(hkType: string): string {
   return WORKOUT_ACTIVITY_TYPES[hkType] || hkType.replace('HKWorkoutActivityType', '');
 }
 

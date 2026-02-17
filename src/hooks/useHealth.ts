@@ -7,6 +7,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import type { HealthPermissionStatus, WorkoutData, ConnectionStatus } from '../types/health';
 import { post, endpoints } from '../config/api';
+import { mapExerciseType } from '../services/AndroidHealthService';
+import { mapActivityType as mapHKActivityType } from '../services/AppleHealthService';
 
 export type { WorkoutData } from '../types/health';
 
@@ -186,7 +188,7 @@ export function useHealth(): UseHealthResult {
           const result = await HealthKitLib.queryWorkoutSamples({
             from: startDate,
             to: endDate,
-            ascending: true,
+            ascending: false,
           });
 
           const samples = result?.samples ?? result;
@@ -194,7 +196,7 @@ export function useHealth(): UseHealthResult {
 
           const workouts: WorkoutData[] = workoutArray.map((w: any) => ({
             id: w.uuid || w.id || String(Date.now()),
-            type: w.workoutActivityType || w.activityName || 'Unknown',
+            type: mapHKActivityType(w.workoutActivityType || w.activityName || 'Workout'),
             startDate: new Date(w.startDate || w.start),
             endDate: new Date(w.endDate || w.end),
             duration: w.duration || 0,
@@ -203,7 +205,8 @@ export function useHealth(): UseHealthResult {
             source: 'healthkit',
           }));
 
-          return workouts;
+          // Ensure reverse-chronological order
+          return workouts.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
         }
 
         if (Platform.OS === 'android' && HealthConnect) {
@@ -217,14 +220,15 @@ export function useHealth(): UseHealthResult {
 
           const workouts: WorkoutData[] = (result?.records ?? []).map((w: any) => ({
             id: w.metadata?.id || String(Date.now()),
-            type: w.exerciseType || 'Unknown',
+            type: mapExerciseType(w.exerciseType ?? 0),
             startDate: new Date(w.startTime),
             endDate: new Date(w.endTime),
             duration: (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / 1000,
             source: 'health_connect',
           }));
 
-          return workouts;
+          // Ensure reverse-chronological order
+          return workouts.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
         }
 
         return [];

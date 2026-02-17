@@ -58,6 +58,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [lastSyncResult, setLastSyncResult] = useState<SyncResultInfo | null>(null);
+  const [visibleCount, setVisibleCount] = useState(10);
   const syncDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load last sync date on mount
@@ -126,6 +127,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
 
       const data = await getWorkouts(startDate, endDate);
       setWorkouts(data);
+      setVisibleCount(10);
       setLastSync(new Date());
     } catch (err) {
       console.error('[HomeScreen] Fetch workouts failed:', err);
@@ -389,15 +391,31 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
           </View>
         )}
 
-        {/* Workouts List — Sent to FitGlue */}
+        {/* Workouts List — Device Workouts */}
         {workouts.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>🏋️ Sent to FitGlue</Text>
+            <Text style={styles.cardTitle}>📱 Device Workouts</Text>
             <Text style={styles.cardDescription}>
-              {workouts.length} workout{workouts.length !== 1 ? 's' : ''} from the last 30 days
+              {workouts.length} workout{workouts.length !== 1 ? 's' : ''} from {platformName} (last 30 days)
             </Text>
 
-            {workouts.slice(0, 10).map((workout, index) => (
+            {/* Sync context */}
+            {lastSyncResult && syncStatus !== 'syncing' && (
+              <View style={styles.syncContextBanner}>
+                <Text style={styles.syncContextText}>
+                  {lastSyncResult.success
+                    ? `✓ ${lastSyncResult.processedCount} synced to FitGlue${lastSync ? ` · ${formatSyncTime(lastSync)}` : ''}`
+                    : `⚠ Sync failed${lastSyncResult.error ? ` · ${lastSyncResult.error}` : ''}`}
+                </Text>
+              </View>
+            )}
+            {!lastSyncResult && syncStatus !== 'syncing' && (
+              <View style={styles.syncContextBanner}>
+                <Text style={styles.syncContextText}>Not yet synced — tap Sync Now above</Text>
+              </View>
+            )}
+
+            {workouts.slice(0, visibleCount).map((workout, index) => (
               <View key={workout.id || index} style={styles.workoutItem}>
                 <View style={styles.workoutHeader}>
                   <Text style={styles.workoutType}>{workout.type}</Text>
@@ -423,10 +441,16 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
               </View>
             ))}
 
-            {workouts.length > 10 && (
-              <Text style={styles.moreWorkouts}>
-                +{workouts.length - 10} more workouts
-              </Text>
+            {workouts.length > visibleCount && (
+              <TouchableOpacity
+                style={styles.showMoreButton}
+                onPress={() => setVisibleCount(prev => prev + 10)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.showMoreText}>
+                  Show {Math.min(10, workouts.length - visibleCount)} more ({workouts.length - visibleCount} remaining)
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
         )}
@@ -711,11 +735,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ccc',
   },
-  moreWorkouts: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 13,
+  showMoreButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
     marginTop: 12,
+  },
+  showMoreText: {
+    color: '#aaa',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  syncContextBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  syncContextText: {
+    color: '#888',
+    fontSize: 12,
   },
   dashboardLink: {
     borderRadius: 16,
