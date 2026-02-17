@@ -6,7 +6,10 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Clipboard } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Sentry from '@sentry/react-native';
+import { colors, spacing, radii, typography } from '../theme';
 
 const IS_PRODUCTION = process.env.EXPO_PUBLIC_ENVIRONMENT === 'production';
 
@@ -31,17 +34,20 @@ export class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         console.error('[ErrorBoundary] Uncaught error:', error, errorInfo);
+        Sentry.captureException(error, {
+            contexts: { react: { componentStack: errorInfo.componentStack } },
+        });
     }
 
     handleRetry = (): void => {
         this.setState({ hasError: false, error: null });
     };
 
-    handleCopyError = (): void => {
+    handleCopyError = async (): Promise<void> => {
         const { error } = this.state;
         if (error) {
             const errorText = `${error.name}: ${error.message}\n\n${error.stack || 'No stack trace'}`;
-            Clipboard.setString(errorText);
+            await Clipboard.setStringAsync(errorText);
         }
     };
 
@@ -84,67 +90,63 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0d0d0d',
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 32,
+        padding: spacing.xxxl,
     },
     emoji: {
         fontSize: 64,
-        marginBottom: 16,
+        marginBottom: spacing.lg,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 12,
+        ...typography.titleMd,
+        marginBottom: spacing.md,
     },
     message: {
         fontSize: 14,
-        color: '#888',
+        color: colors.textMuted,
         textAlign: 'center',
         lineHeight: 20,
-        marginBottom: 32,
+        marginBottom: spacing.xxxl,
     },
     button: {
-        backgroundColor: '#FF006E',
-        paddingHorizontal: 32,
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.xxxl,
         paddingVertical: 14,
-        borderRadius: 10,
+        borderRadius: radii.lg,
     },
     buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+        ...typography.button,
     },
     buttonRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: spacing.md,
     },
     copyButton: {
-        borderColor: '#FF006E',
+        borderColor: colors.primary,
         borderWidth: 1,
-        paddingHorizontal: 24,
+        paddingHorizontal: spacing.xxl,
         paddingVertical: 14,
-        borderRadius: 10,
+        borderRadius: radii.lg,
     },
     copyButtonText: {
-        color: '#FF006E',
+        color: colors.primary,
         fontSize: 16,
         fontWeight: '600',
     },
     debugBox: {
         maxHeight: 200,
         width: '100%',
-        backgroundColor: 'rgba(255, 0, 110, 0.08)',
-        borderRadius: 8,
+        backgroundColor: colors.primarySurfaceLight,
+        borderRadius: radii.md,
         borderWidth: 1,
         borderColor: 'rgba(255, 0, 110, 0.2)',
-        padding: 12,
-        marginBottom: 24,
+        padding: spacing.md,
+        marginBottom: spacing.xxl,
     },
     debugLabel: {
-        color: '#FF006E',
+        color: colors.primary,
         fontSize: 13,
         fontWeight: '700',
         marginBottom: 6,

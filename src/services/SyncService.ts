@@ -250,3 +250,53 @@ export async function getSyncStatus(): Promise<{
     platform: Platform.OS,
   };
 }
+
+/**
+ * Submit specific activities to FitGlue (for manual backfill).
+ * Unlike performSync(), this does NOT update the sync date — it only
+ * sends the provided activities.
+ */
+export async function submitActivities(
+  activities: Array<{
+    id: string;
+    type: string;
+    startDate: Date;
+    endDate: Date;
+    duration: number;
+    distance?: number;
+    calories?: number;
+    source: 'healthkit' | 'health_connect';
+  }>
+): Promise<SyncResult> {
+  console.log(`[SyncService] Submitting ${activities.length} activities for backfill`);
+
+  const token = await getAuthToken();
+  if (!token) {
+    return {
+      success: false,
+      processedCount: 0,
+      skippedCount: 0,
+      error: 'Not authenticated',
+    };
+  }
+
+  // Convert WorkoutData format to the API format expected by submitToBackend
+  const apiActivities = activities.map((a) => ({
+    externalId: a.id,
+    activityName: a.type,
+    startTime: a.startDate.toISOString(),
+    endTime: a.endDate.toISOString(),
+    duration: a.duration,
+    distance: a.distance,
+    calories: a.calories,
+    source: a.source,
+  }));
+
+  const platform = Platform.OS === 'ios' ? 'ios' as const : 'android' as const;
+  const result = await submitToBackend(apiActivities, platform, token);
+
+  return {
+    ...result,
+    syncedAt: result.success ? new Date() : undefined,
+  };
+}

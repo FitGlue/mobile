@@ -13,16 +13,22 @@ import {
     TouchableOpacity,
     Switch,
     Alert,
-    Linking,
     Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
-import { environment } from '../config/environment';
+import { environment, apiConfig } from '../config/environment';
 import * as StorageService from '../services/StorageService';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import { formatRelativeTime } from '../utils/formatters';
+import { colors, spacing, radii, typography, gradients } from '../theme';
 import {
     isBackgroundSyncRegistered,
     registerBackgroundSync,
@@ -31,11 +37,12 @@ import {
 } from '../services/BackgroundSyncTask';
 
 interface SettingsScreenProps {
-    navigation: any;
+    navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element {
     const { user, signOut } = useAuth();
+    const insets = useSafeAreaInsets();
     const [syncEnabled, setSyncEnabled] = useState(true);
     const [lastSync, setLastSync] = useState<Date | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -54,6 +61,22 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
             setBgSyncRegistered(registered);
         })();
     }, []);
+
+    // Refresh data when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            (async () => {
+                const date = await StorageService.getLastSyncDate();
+                setLastSync(date);
+
+                const enabled = await StorageService.isSyncEnabled();
+                setSyncEnabled(enabled);
+
+                const registered = await isBackgroundSyncRegistered();
+                setBgSyncRegistered(registered);
+            })();
+        }, [])
+    );
 
     const handleToggleSync = useCallback(async (value: boolean) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -95,20 +118,15 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
 
     const handleOpenDashboard = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        const baseUrl = environment === 'production'
-            ? 'https://fitglue.tech'
-            : environment === 'test'
-                ? 'https://test.fitglue.tech'
-                : 'https://dev.fitglue.tech';
-        Linking.openURL(`${baseUrl}/app`);
+        WebBrowser.openBrowserAsync(`${apiConfig.baseUrl}/app`);
     }, []);
 
     const handleOpenPrivacy = useCallback(() => {
-        Linking.openURL('https://fitglue.tech/privacy');
+        WebBrowser.openBrowserAsync('https://fitglue.tech/privacy');
     }, []);
 
     const handleOpenTerms = useCallback(() => {
-        Linking.openURL('https://fitglue.tech/terms');
+        WebBrowser.openBrowserAsync('https://fitglue.tech/terms');
     }, []);
 
     const handleSignOut = useCallback(async () => {
@@ -133,25 +151,12 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
     const appVersion = Constants.expoConfig?.version ?? '1.0.0';
     const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
 
-    const formatDate = (date: Date | null): string => {
-        if (!date) return 'Never';
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours}h ago`;
-        return date.toLocaleDateString();
-    };
-
     return (
         <View style={styles.container}>
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity
                     onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -194,7 +199,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
                     <View style={styles.settingRow}>
                         <View style={styles.settingInfo}>
                             <Text style={styles.settingLabel}>Last Sync</Text>
-                            <Text style={styles.settingDescription}>{formatDate(lastSync)}</Text>
+                            <Text style={styles.settingDescription}>{formatRelativeTime(lastSync)}</Text>
                         </View>
                         <View style={[
                             styles.statusIndicator,
@@ -289,109 +294,99 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0d0d0d',
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 60,
-        paddingHorizontal: 20,
-        paddingBottom: 16,
+        paddingHorizontal: spacing.xl,
+        paddingBottom: spacing.lg,
     },
     backButton: {
         width: 60,
     },
     backText: {
-        color: '#FF006E',
-        fontSize: 16,
+        color: colors.primary,
+        fontSize: spacing.lg,
         fontWeight: '600',
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#ffffff',
+        ...typography.titleSm,
     },
     divider: {
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        marginHorizontal: 20,
+        backgroundColor: colors.divider,
+        marginHorizontal: spacing.xl,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: 20,
+        padding: spacing.xl,
         paddingBottom: 40,
     },
     sectionTitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#666',
-        letterSpacing: 1.5,
-        marginBottom: 8,
-        marginTop: 8,
+        ...typography.label,
+        marginBottom: spacing.sm,
+        marginTop: spacing.sm,
     },
     card: {
-        backgroundColor: 'rgba(26, 26, 26, 0.9)',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 24,
+        backgroundColor: colors.surface,
+        borderRadius: radii.xxl,
+        padding: spacing.lg,
+        marginBottom: spacing.xxl,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: colors.surfaceBorder,
     },
     settingRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: spacing.sm,
     },
     settingInfo: {
         flex: 1,
-        marginRight: 12,
+        marginRight: spacing.md,
     },
     settingLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#ffffff',
+        ...typography.bodySmall,
     },
     settingDescription: {
-        fontSize: 13,
-        color: '#888',
+        ...typography.caption,
         marginTop: 2,
     },
     settingValue: {
         fontSize: 15,
-        color: '#888',
+        color: colors.textMuted,
     },
     settingDivider: {
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        marginVertical: 8,
+        backgroundColor: colors.dividerSubtle,
+        marginVertical: spacing.sm,
     },
     statusIndicator: {
         width: 8,
         height: 8,
-        borderRadius: 4,
+        borderRadius: radii.sm,
     },
     statusGreen: {
-        backgroundColor: '#22c55e',
+        backgroundColor: colors.success,
     },
     statusAmber: {
-        backgroundColor: '#f59e0b',
+        backgroundColor: colors.warning,
     },
     syncButton: {
         borderWidth: 1,
-        borderColor: '#FF006E',
-        paddingVertical: 12,
-        borderRadius: 10,
+        borderColor: colors.primary,
+        paddingVertical: spacing.md,
+        borderRadius: radii.lg,
         alignItems: 'center',
-        marginTop: 12,
+        marginTop: spacing.md,
     },
     syncButtonText: {
-        color: '#FF006E',
-        fontSize: 14,
-        fontWeight: '600',
+        color: colors.primary,
+        ...typography.buttonSmall,
     },
     buttonDisabled: {
         opacity: 0.5,
@@ -400,51 +395,50 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: spacing.sm,
     },
     linkText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#FF006E',
+        ...typography.bodySmall,
+        color: colors.primary,
     },
     linkArrow: {
         fontSize: 16,
-        color: '#FF006E',
+        color: colors.primary,
     },
     signOutButton: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        backgroundColor: colors.errorSurface,
         borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.3)',
-        borderRadius: 12,
-        paddingVertical: 16,
+        borderColor: colors.errorBorder,
+        borderRadius: radii.xl,
+        paddingVertical: spacing.lg,
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: spacing.xxxl,
     },
     signOutText: {
-        color: '#ef4444',
+        color: colors.error,
         fontSize: 16,
         fontWeight: '600',
     },
     footer: {
         alignItems: 'center',
-        paddingBottom: 20,
+        paddingBottom: spacing.xl,
     },
     titleRow: {
         flexDirection: 'row',
-        marginBottom: 4,
+        marginBottom: spacing.xs,
     },
     titleFit: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#FF006E',
+        color: colors.primary,
     },
     titleGlue: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#8338EC',
+        color: colors.secondary,
     },
     footerText: {
         fontSize: 12,
-        color: '#555',
+        color: colors.textSubtle,
     },
 });

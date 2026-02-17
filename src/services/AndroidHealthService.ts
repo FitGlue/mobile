@@ -352,6 +352,61 @@ async function getDistanceForSession(
 }
 
 /**
+ * Extract GPS route data from an ExerciseSession.
+ *
+ * Health Connect uses a two-phase route access model:
+ * - readRecords() returns exerciseRoute.type = DATA | NO_DATA | CONSENT_REQUIRED
+ * - If DATA, the Location[] is already inline
+ * - If CONSENT_REQUIRED, call requestExerciseRoute(recordId) to prompt user
+ */
+async function getRouteForSession(
+  session: any
+): Promise<RoutePoint[]> {
+  if (!HealthConnect) return [];
+
+  try {
+    const exerciseRoute = session.exerciseRoute;
+    if (!exerciseRoute) return [];
+
+    // ExerciseRouteResultType: DATA = 0, NO_DATA = 1, CONSENT_REQUIRED = 2
+    if (exerciseRoute.type === 1) {
+      // NO_DATA — workout has no route
+      return [];
+    }
+
+    let locations = exerciseRoute.route;
+
+    if (exerciseRoute.type === 2) {
+      // CONSENT_REQUIRED — need to request route access
+      const recordId = session.metadata?.id;
+      if (!recordId || !HealthConnect.requestExerciseRoute) return [];
+
+      try {
+        const routeResult = await HealthConnect.requestExerciseRoute(recordId);
+        locations = routeResult?.route;
+      } catch (e) {
+        console.warn('[AndroidHealthService] Route consent denied or failed:', e);
+        return [];
+      }
+    }
+
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      return [];
+    }
+
+    return locations.map((loc: any) => ({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      altitude: loc.altitude?.inMeters,
+      timestamp: new Date(loc.time),
+    }));
+  } catch (e) {
+    console.warn('[AndroidHealthService] Failed to get route:', e);
+    return [];
+  }
+}
+
+/**
  * Query new workouts since the last sync date
  *
  * @param lastSyncDate - Only return workouts after this date
@@ -394,9 +449,10 @@ export async function queryNewWorkouts(
         // Get heart rate samples for this session
         const heartRateSamples = await getHeartRateRecords(startTime, endTime);
 
-        // Get calories and distance from separate Health Connect record types
+        // Get calories, distance, and GPS route
         const calories = await getCaloriesForSession(startTime, endTime);
         const distance = await getDistanceForSession(startTime, endTime);
+        const route = await getRouteForSession(session);
 
         const activity: StandardizedActivity = {
           externalId: session.metadata?.id,
@@ -407,6 +463,7 @@ export async function queryNewWorkouts(
           calories,
           distance,
           heartRateSamples,
+          route: route.length > 0 ? route : undefined,
           source: 'health_connect',
         };
 

@@ -2,7 +2,7 @@
  * FitGlue Mobile Home Screen
  *
  * Main dashboard for authenticated users.
- * Shows health sync status, recent synced activities, and a link to the web dashboard.
+ * Orchestrates health sync status, recent workouts, and dashboard link.
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -11,36 +11,39 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   Alert,
   Platform,
-  Linking,
-  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { useHealth, WorkoutData } from '../hooks/useHealth';
 import { environment } from '../config/environment';
 import * as StorageService from '../services/StorageService';
 import { triggerManualSync } from '../services/BackgroundSyncTask';
+import { submitActivities } from '../services/SyncService';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import { formatRelativeTime } from '../utils/formatters';
+import { colors, spacing, radii } from '../theme';
 
-interface SyncResultInfo {
-  success: boolean;
-  processedCount: number;
-  error?: string;
-}
-
-type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
+// Components
+import { DashboardHeader } from '../components/DashboardHeader';
+import { HealthStatusCard } from '../components/HealthStatusCard';
+import { SyncStatusCard, SyncStatus, SyncResultInfo } from '../components/SyncStatusCard';
+import { WorkoutList } from '../components/WorkoutList';
+import { DashboardLink } from '../components/DashboardLink';
+import { EmptyWorkoutState } from '../components/EmptyWorkoutState';
 
 interface HomeScreenProps {
-  navigation: any;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const {
     isAvailable,
     isInitialized,
@@ -59,6 +62,8 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [lastSyncResult, setLastSyncResult] = useState<SyncResultInfo | null>(null);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [syncedIds, setSyncedIds] = useState<Set<string>>(new Set());
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const syncDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load last sync date on mount
@@ -85,7 +90,6 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       if (result.success) {
         setSyncStatus('success');
         setLastSync(new Date());
-        // Auto-dismiss success after 5 seconds
         syncDismissTimer.current = setTimeout(() => {
           setSyncStatus('idle');
         }, 5000);
@@ -136,69 +140,40 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
     }
   }, [isInitialized, getWorkouts]);
 
+  const handleSyncWorkout = useCallback(async (workout: WorkoutData) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSyncingId(workout.id);
+    try {
+      const result = await submitActivities([workout]);
+      if (result.success) {
+        setSyncedIds((prev) => new Set(prev).add(workout.id));
+      } else {
+        Alert.alert('Sync Failed', result.error || 'Could not sync this workout.');
+      }
+    } catch {
+      Alert.alert('Sync Failed', 'An unexpected error occurred.');
+    } finally {
+      setSyncingId(null);
+    }
+  }, []);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await handleFetchWorkouts();
     setRefreshing(false);
   }, [handleFetchWorkouts]);
 
-  const handleOpenDashboard = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const baseUrl = environment === 'production'
-      ? 'https://fitglue.tech'
-      : environment === 'test'
-        ? 'https://test.fitglue.tech'
-        : 'https://dev.fitglue.tech';
-    Linking.openURL(`${baseUrl}/app`);
-  }, []);
-
-  const handleOpenSettings = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate('Settings');
-  }, [navigation]);
-
-  const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
   const userInitial = user?.email?.charAt(0)?.toUpperCase() || '?';
-
-  const formatSyncTime = (date: Date | null): string => {
-    if (!date) return 'Never synced';
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString();
-  };
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.titleRow}>
-            <Text style={styles.titleFit}>Fit</Text>
-            <Text style={styles.titleGlue}>Glue</Text>
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={handleOpenSettings} style={styles.settingsButton}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
-          <LinearGradient
-            colors={['#FF006E', '#8338EC']}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText}>{userInitial}</Text>
-          </LinearGradient>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
+      <DashboardHeader
+        userInitial={userInitial}
+        onOpenSettings={() => navigation.navigate('Settings')}
+        topInset={insets.top}
+      />
 
       {/* Environment Badge */}
       {environment !== 'production' && (
@@ -214,7 +189,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#FF006E"
+            tintColor={colors.primary}
           />
         }
       >
@@ -226,256 +201,48 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
         <View style={styles.syncBanner}>
           <View style={[styles.syncDot, lastSync ? styles.dotGreen : styles.dotAmber]} />
           <Text style={styles.syncBannerText}>
-            Last sync: {formatSyncTime(lastSync)}
+            Last sync: {formatRelativeTime(lastSync)}
           </Text>
         </View>
 
-        {/* Health Status Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            🏥 {platformName}
-          </Text>
-          <Text style={styles.cardDescription}>
-            {isInitialized
-              ? 'Your health data is connected and ready to sync.'
-              : `Connect to ${platformName} to start syncing your workouts.`}
-          </Text>
+        {/* Health Status */}
+        <HealthStatusCard
+          isAvailable={isAvailable}
+          isInitialized={isInitialized}
+          permissions={permissions}
+          connectionStatus={connectionStatus}
+          healthError={healthError}
+          loading={loading}
+          onInitialize={handleInitializeHealth}
+        />
 
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Available</Text>
-            <View style={[styles.statusDot, isAvailable ? styles.dotGreen : styles.dotRed]} />
-          </View>
-
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Initialized</Text>
-            <View style={[styles.statusDot, isInitialized ? styles.dotGreen : styles.dotRed]} />
-          </View>
-
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Workouts</Text>
-            {permissions.workouts ? (
-              <Text style={styles.checkmark}>✓</Text>
-            ) : (
-              <View style={styles.emptyCircle} />
-            )}
-          </View>
-
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Heart Rate</Text>
-            {permissions.heartRate ? (
-              <Text style={styles.checkmark}>✓</Text>
-            ) : (
-              <View style={styles.emptyCircle} />
-            )}
-          </View>
-
-          {healthError && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{healthError}</Text>
-            </View>
-          )}
-
-          {/* Connection status banner */}
-          {connectionStatus === 'connecting' && (
-            <View style={styles.connectionBanner}>
-              <ActivityIndicator size="small" color="#FF006E" />
-              <Text style={styles.connectionBannerText}>
-                Enabling {platformName} connection in FitGlue…
-              </Text>
-            </View>
-          )}
-          {connectionStatus === 'connected' && (
-            <View style={[styles.connectionBanner, styles.connectionBannerSuccess]}>
-              <Text style={styles.connectionSuccessIcon}>✓</Text>
-              <Text style={styles.connectionBannerTextSuccess}>
-                Enabled! You can now use {platformName} as a source.
-              </Text>
-            </View>
-          )}
-          {connectionStatus === 'error' && (
-            <View style={[styles.connectionBanner, styles.connectionBannerError]}>
-              <Text style={styles.connectionBannerTextError}>
-                Failed to register {platformName} connection. Sync will still work — the connection will be registered on first sync.
-              </Text>
-            </View>
-          )}
-
-          {!isInitialized && (
-            <TouchableOpacity
-              style={[styles.buttonWrapper, loading && styles.buttonDisabled]}
-              onPress={handleInitializeHealth}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FF006E', '#8338EC']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
-              >
-                <Text style={styles.buttonText}>
-                  {loading ? 'Connecting…' : `Connect to ${platformName}`}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Sync Card */}
+        {/* Sync Status */}
         {isInitialized && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>📡 Sync Status</Text>
-
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Last Sync</Text>
-              <Text style={styles.statusValue}>
-                {lastSync ? lastSync.toLocaleString() : 'Never'}
-              </Text>
-            </View>
-
-            {/* Sync result banner */}
-            {syncStatus === 'syncing' && (
-              <View style={styles.syncResultBanner}>
-                <ActivityIndicator size="small" color="#FF006E" />
-                <Text style={styles.syncResultText}>Syncing workouts to FitGlue…</Text>
-              </View>
-            )}
-            {syncStatus === 'success' && lastSyncResult && (
-              <View style={[styles.syncResultBanner, styles.syncResultSuccess]}>
-                <Text style={styles.connectionSuccessIcon}>✓</Text>
-                <Text style={styles.syncResultTextSuccess}>
-                  Synced! {lastSyncResult.processedCount} workout{lastSyncResult.processedCount !== 1 ? 's' : ''} processed.
-                </Text>
-              </View>
-            )}
-            {syncStatus === 'error' && lastSyncResult && (
-              <View style={[styles.syncResultBanner, styles.syncResultError]}>
-                <Text style={styles.syncResultTextError}>
-                  {lastSyncResult.error || 'Sync failed'}
-                </Text>
-              </View>
-            )}
-
-            {/* Sync Now button */}
-            <TouchableOpacity
-              style={[styles.buttonWrapper, syncStatus === 'syncing' && styles.buttonDisabled]}
-              onPress={handleSyncNow}
-              disabled={syncStatus === 'syncing'}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FF006E', '#8338EC']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
-              >
-                <Text style={styles.buttonText}>
-                  {syncStatus === 'syncing' ? 'Syncing…' : 'Sync Now'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Fetch workouts locally */}
-            <TouchableOpacity
-              style={[styles.outlineButton, loading && styles.buttonDisabled]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                handleFetchWorkouts();
-              }}
-              disabled={loading}
-            >
-              <Text style={styles.outlineButtonText}>
-                {loading ? 'Fetching…' : 'Fetch Workouts (Last 30 Days)'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <SyncStatusCard
+            lastSync={lastSync}
+            syncStatus={syncStatus}
+            lastSyncResult={lastSyncResult}
+            loading={loading}
+            onSyncNow={handleSyncNow}
+            onFetchWorkouts={handleFetchWorkouts}
+          />
         )}
 
-        {/* Workouts List — Device Workouts */}
-        {workouts.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>📱 Device Workouts</Text>
-            <Text style={styles.cardDescription}>
-              {workouts.length} workout{workouts.length !== 1 ? 's' : ''} from {platformName} (last 30 days)
-            </Text>
-
-            {/* Sync context */}
-            {lastSyncResult && syncStatus !== 'syncing' && (
-              <View style={styles.syncContextBanner}>
-                <Text style={styles.syncContextText}>
-                  {lastSyncResult.success
-                    ? `✓ ${lastSyncResult.processedCount} synced to FitGlue${lastSync ? ` · ${formatSyncTime(lastSync)}` : ''}`
-                    : `⚠ Sync failed${lastSyncResult.error ? ` · ${lastSyncResult.error}` : ''}`}
-                </Text>
-              </View>
-            )}
-            {!lastSyncResult && syncStatus !== 'syncing' && (
-              <View style={styles.syncContextBanner}>
-                <Text style={styles.syncContextText}>Not yet synced — tap Sync Now above</Text>
-              </View>
-            )}
-
-            {workouts.slice(0, visibleCount).map((workout, index) => (
-              <View key={workout.id || index} style={styles.workoutItem}>
-                <View style={styles.workoutHeader}>
-                  <Text style={styles.workoutType}>{workout.type}</Text>
-                  <Text style={styles.workoutDate}>
-                    {workout.startDate.toLocaleDateString()}
-                  </Text>
-                </View>
-                <View style={styles.workoutStats}>
-                  <Text style={styles.workoutStat}>
-                    ⏱️ {Math.round(workout.duration / 60)} min
-                  </Text>
-                  {workout.distance && (
-                    <Text style={styles.workoutStat}>
-                      📍 {(workout.distance / 1000).toFixed(2)} km
-                    </Text>
-                  )}
-                  {workout.calories && (
-                    <Text style={styles.workoutStat}>
-                      🔥 {workout.calories} cal
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-
-            {workouts.length > visibleCount && (
-              <TouchableOpacity
-                style={styles.showMoreButton}
-                onPress={() => setVisibleCount(prev => prev + 10)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.showMoreText}>
-                  Show {Math.min(10, workouts.length - visibleCount)} more ({workouts.length - visibleCount} remaining)
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Device Workouts */}
+        {isInitialized && workouts.length === 0 && !loading && (
+          <EmptyWorkoutState />
         )}
+        <WorkoutList
+          workouts={workouts}
+          visibleCount={visibleCount}
+          syncedIds={syncedIds}
+          syncingId={syncingId}
+          onSyncWorkout={handleSyncWorkout}
+          onShowMore={() => setVisibleCount(prev => prev + 10)}
+        />
 
         {/* Dashboard Link */}
-        <TouchableOpacity
-          style={styles.dashboardLink}
-          onPress={handleOpenDashboard}
-          activeOpacity={0.7}
-        >
-          <LinearGradient
-            colors={['rgba(255, 0, 110, 0.1)', 'rgba(131, 56, 236, 0.1)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.dashboardLinkInner}
-          >
-            <View>
-              <Text style={styles.dashboardLinkTitle}>Open FitGlue Dashboard</Text>
-              <Text style={styles.dashboardLinkSubtitle}>
-                View enriched activities, manage pipelines, and more
-              </Text>
-            </View>
-            <Text style={styles.dashboardLinkArrow}>→</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <DashboardLink />
 
         {/* Info Footer */}
         <View style={styles.footer}>
@@ -493,78 +260,20 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d0d0d',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  titleRow: {
-    flexDirection: 'row',
-  },
-  titleFit: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF006E',
-  },
-  titleGlue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8338EC',
-  },
-  settingsButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 18,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: 20,
+    backgroundColor: colors.background,
   },
   envBadge: {
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 0, 110, 0.15)',
+    backgroundColor: colors.primarySurface,
     borderWidth: 1,
-    borderColor: '#FF006E',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 12,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.xl,
+    marginTop: spacing.md,
   },
   envBadgeText: {
-    color: '#FF006E',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -572,295 +281,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: spacing.xl,
     paddingBottom: 40,
   },
   dashboardTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   dashboardSubtitle: {
     fontSize: 15,
-    color: '#888',
-    marginBottom: 12,
+    color: colors.textMuted,
+    marginBottom: spacing.md,
   },
   syncBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 10,
+    borderRadius: radii.lg,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    marginBottom: 20,
-    gap: 8,
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
   },
   syncDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  syncBannerText: {
-    fontSize: 13,
-    color: '#aaa',
-  },
-  card: {
-    backgroundColor: 'rgba(26, 26, 26, 0.9)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 6,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  statusLabel: {
-    fontSize: 15,
-    color: '#aaa',
-  },
-  statusValue: {
-    fontSize: 15,
-    color: '#ffffff',
-    fontWeight: '500',
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
   dotGreen: {
-    backgroundColor: '#22c55e',
-  },
-  dotRed: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.success,
   },
   dotAmber: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: colors.warning,
   },
-  checkmark: {
-    color: '#14b8a6',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: '#555',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  errorText: {
-    color: '#ef4444',
+  syncBannerText: {
     fontSize: 13,
-  },
-  buttonWrapper: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginTop: 12,
-  },
-  gradientButton: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: '#FF006E',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  outlineButtonText: {
-    color: '#FF006E',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  workoutItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  workoutType: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FF006E',
-  },
-  workoutDate: {
-    fontSize: 13,
-    color: '#888',
-  },
-  workoutStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  workoutStat: {
-    fontSize: 13,
-    color: '#ccc',
-  },
-  showMoreButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  showMoreText: {
-    color: '#aaa',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  syncContextBanner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  syncContextText: {
-    color: '#888',
-    fontSize: 12,
-  },
-  dashboardLink: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 0, 110, 0.2)',
-  },
-  dashboardLinkInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-  },
-  dashboardLinkTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF006E',
-    marginBottom: 4,
-  },
-  dashboardLinkSubtitle: {
-    fontSize: 13,
-    color: '#888',
-  },
-  dashboardLinkArrow: {
-    fontSize: 20,
-    color: '#FF006E',
-    marginLeft: 12,
+    color: colors.textSecondary,
   },
   footer: {
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: spacing.lg,
   },
   footerText: {
     fontSize: 12,
-    color: '#555',
+    color: colors.textSubtle,
     textAlign: 'center',
-    marginBottom: 4,
-  },
-  connectionBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 110, 0.08)',
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 8,
-    marginBottom: 4,
-    gap: 10,
-  },
-  connectionBannerSuccess: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-  },
-  connectionBannerError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  connectionBannerText: {
-    color: '#FF006E',
-    fontSize: 13,
-    flex: 1,
-  },
-  connectionBannerTextSuccess: {
-    color: '#22c55e',
-    fontSize: 13,
-    flex: 1,
-  },
-  connectionBannerTextError: {
-    color: '#ef4444',
-    fontSize: 13,
-    flex: 1,
-  },
-  connectionSuccessIcon: {
-    color: '#22c55e',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  syncResultBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 110, 0.08)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  syncResultSuccess: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-  },
-  syncResultError: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  syncResultText: {
-    color: '#FF006E',
-    fontSize: 13,
-    flex: 1,
-  },
-  syncResultTextSuccess: {
-    color: '#22c55e',
-    fontSize: 13,
-    flex: 1,
-  },
-  syncResultTextError: {
-    color: '#ef4444',
-    fontSize: 13,
-    flex: 1,
+    marginBottom: spacing.xs,
   },
 });

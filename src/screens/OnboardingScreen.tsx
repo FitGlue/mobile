@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -63,6 +64,7 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Element {
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
+    const insets = useSafeAreaInsets();
 
     const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
@@ -93,12 +95,12 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Ele
             <StatusBar style="light" />
 
             {/* Skip button */}
-            <TouchableOpacity style={styles.skipButton} onPress={onComplete}>
+            <TouchableOpacity style={[styles.skipButton, { top: insets.top + 8 }]} onPress={onComplete}>
                 <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
 
             {/* Branding */}
-            <View style={styles.brandRow}>
+            <View style={[styles.brandRow, { paddingTop: insets.top + 24 }]}>
                 <Text style={styles.brandFit}>Fit</Text>
                 <Text style={styles.brandGlue}>Glue</Text>
             </View>
@@ -117,7 +119,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Ele
             />
 
             {/* Dots and CTA */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 {/* Pagination dots */}
                 <View style={styles.dots}>
                     {SLIDES.map((_, index) => (
@@ -160,7 +162,6 @@ const styles = StyleSheet.create({
     },
     skipButton: {
         position: 'absolute',
-        top: 60,
         right: 24,
         zIndex: 10,
         padding: 8,
@@ -172,7 +173,6 @@ const styles = StyleSheet.create({
     brandRow: {
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingTop: 80,
         marginBottom: 8,
     },
     brandFit: {
@@ -223,7 +223,6 @@ const styles = StyleSheet.create({
     },
     footer: {
         paddingHorizontal: 32,
-        paddingBottom: 60,
         alignItems: 'center',
         gap: 24,
     },

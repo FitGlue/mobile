@@ -27,6 +27,7 @@ export interface WorkoutData {
   heartRateSamples?: HeartRateSample[];
   route?: RoutePoint[];
   source: 'healthkit' | 'health_connect';
+  synced?: boolean; // Whether this activity has been submitted to FitGlue
 }
 
 export interface HeartRateSample {

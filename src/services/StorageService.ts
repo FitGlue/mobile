@@ -121,12 +121,12 @@ export async function clearAllStorage(): Promise<void> {
 }
 
 /**
- * Get default sync date (e.g., 30 days ago for initial sync)
+ * Get default sync date for initial sync.
+ * Returns "now" so the first sync only captures activities going forward.
+ * Historical activities can be backfilled individually via the UI.
  */
 export function getDefaultSyncDate(): Date {
-  const date = new Date();
-  date.setDate(date.getDate() - 30);
-  return date;
+  return new Date();
 }
 
 /**

@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
-import type { HealthPermissionStatus, WorkoutData, ConnectionStatus } from '../types/health';
+import type { HealthPermissionStatus, WorkoutData, ConnectionStatus, RoutePoint } from '../types/health';
 import { post, endpoints } from '../config/api';
 import { mapExerciseType } from '../services/AndroidHealthService';
 import { mapActivityType as mapHKActivityType } from '../services/AppleHealthService';
@@ -218,14 +218,28 @@ export function useHealth(): UseHealthResult {
             },
           });
 
-          const workouts: WorkoutData[] = (result?.records ?? []).map((w: any) => ({
-            id: w.metadata?.id || String(Date.now()),
-            type: mapExerciseType(w.exerciseType ?? 0),
-            startDate: new Date(w.startTime),
-            endDate: new Date(w.endTime),
-            duration: (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / 1000,
-            source: 'health_connect',
-          }));
+          const workouts: WorkoutData[] = (result?.records ?? []).map((w: any) => {
+            // Extract route points from inline exerciseRoute (type=DATA)
+            let route: RoutePoint[] | undefined;
+            if (w.exerciseRoute?.type === 0 && Array.isArray(w.exerciseRoute.route)) {
+              route = w.exerciseRoute.route.map((loc: any) => ({
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                altitude: loc.altitude?.inMeters,
+                timestamp: new Date(loc.time),
+              }));
+            }
+
+            return {
+              id: w.metadata?.id || String(Date.now()),
+              type: mapExerciseType(w.exerciseType ?? 0),
+              startDate: new Date(w.startTime),
+              endDate: new Date(w.endTime),
+              duration: (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / 1000,
+              route,
+              source: 'health_connect' as const,
+            };
+          });
 
           // Ensure reverse-chronological order
           return workouts.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());

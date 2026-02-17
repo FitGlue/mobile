@@ -10,11 +10,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { LoginScreen, HomeScreen, OnboardingScreen, SettingsScreen } from '../screens';
+import { navigationIntegration } from '../../App';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
 
@@ -40,6 +41,7 @@ function LoadingScreen(): JSX.Element {
 export function AppNavigator(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+  const navigationRef = createNavigationContainerRef();
 
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY).then((value) => {
@@ -58,7 +60,12 @@ export function AppNavigator(): JSX.Element {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        navigationIntegration.registerNavigationContainer(navigationRef);
+      }}
+    >
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

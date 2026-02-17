@@ -56,7 +56,9 @@
             "minSdkVersion": 26
           }
         }
-      ]
+      ],
+      "expo-web-browser",
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {
