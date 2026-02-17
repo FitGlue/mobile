@@ -5,7 +5,7 @@
  * Shows health sync status, recent synced activities, and a link to the web dashboard.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   Alert,
   Platform,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +25,15 @@ import { useAuth } from '../context/AuthContext';
 import { useHealth, WorkoutData } from '../hooks/useHealth';
 import { environment } from '../config/environment';
 import * as StorageService from '../services/StorageService';
+import { triggerManualSync } from '../services/BackgroundSyncTask';
+
+interface SyncResultInfo {
+  success: boolean;
+  processedCount: number;
+  error?: string;
+}
+
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 interface HomeScreenProps {
   navigation: any;
@@ -35,6 +45,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
     isAvailable,
     isInitialized,
     permissions,
+    connectionStatus,
     error: healthError,
     initialize,
     requestPermissions,
@@ -45,10 +56,45 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [lastSyncResult, setLastSyncResult] = useState<SyncResultInfo | null>(null);
+  const syncDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load last sync date on mount
   useEffect(() => {
     StorageService.getLastSyncDate().then(setLastSync);
+  }, []);
+
+  // Clean up auto-dismiss timer
+  useEffect(() => {
+    return () => {
+      if (syncDismissTimer.current) clearTimeout(syncDismissTimer.current);
+    };
+  }, []);
+
+  const handleSyncNow = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSyncStatus('syncing');
+    setLastSyncResult(null);
+    if (syncDismissTimer.current) clearTimeout(syncDismissTimer.current);
+
+    try {
+      const result = await triggerManualSync();
+      setLastSyncResult(result);
+      if (result.success) {
+        setSyncStatus('success');
+        setLastSync(new Date());
+        // Auto-dismiss success after 5 seconds
+        syncDismissTimer.current = setTimeout(() => {
+          setSyncStatus('idle');
+        }, 5000);
+      } else {
+        setSyncStatus('error');
+      }
+    } catch {
+      setSyncStatus('error');
+      setLastSyncResult({ success: false, processedCount: 0, error: 'Sync failed unexpectedly' });
+    }
   }, []);
 
   const handleInitializeHealth = useCallback(async () => {
@@ -101,7 +147,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       : environment === 'test'
         ? 'https://test.fitglue.tech'
         : 'https://dev.fitglue.tech';
-    Linking.openURL(baseUrl);
+    Linking.openURL(`${baseUrl}/app`);
   }, []);
 
   const handleOpenSettings = useCallback(() => {
@@ -227,6 +273,31 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
             </View>
           )}
 
+          {/* Connection status banner */}
+          {connectionStatus === 'connecting' && (
+            <View style={styles.connectionBanner}>
+              <ActivityIndicator size="small" color="#FF006E" />
+              <Text style={styles.connectionBannerText}>
+                Enabling {platformName} connection in FitGlue…
+              </Text>
+            </View>
+          )}
+          {connectionStatus === 'connected' && (
+            <View style={[styles.connectionBanner, styles.connectionBannerSuccess]}>
+              <Text style={styles.connectionSuccessIcon}>✓</Text>
+              <Text style={styles.connectionBannerTextSuccess}>
+                Enabled! You can now use {platformName} as a source.
+              </Text>
+            </View>
+          )}
+          {connectionStatus === 'error' && (
+            <View style={[styles.connectionBanner, styles.connectionBannerError]}>
+              <Text style={styles.connectionBannerTextError}>
+                Failed to register {platformName} connection. Sync will still work — the connection will be registered on first sync.
+              </Text>
+            </View>
+          )}
+
           {!isInitialized && (
             <TouchableOpacity
               style={[styles.buttonWrapper, loading && styles.buttonDisabled]}
@@ -260,11 +331,49 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
               </Text>
             </View>
 
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Workouts Found</Text>
-              <Text style={styles.statusValue}>{workouts.length}</Text>
-            </View>
+            {/* Sync result banner */}
+            {syncStatus === 'syncing' && (
+              <View style={styles.syncResultBanner}>
+                <ActivityIndicator size="small" color="#FF006E" />
+                <Text style={styles.syncResultText}>Syncing workouts to FitGlue…</Text>
+              </View>
+            )}
+            {syncStatus === 'success' && lastSyncResult && (
+              <View style={[styles.syncResultBanner, styles.syncResultSuccess]}>
+                <Text style={styles.connectionSuccessIcon}>✓</Text>
+                <Text style={styles.syncResultTextSuccess}>
+                  Synced! {lastSyncResult.processedCount} workout{lastSyncResult.processedCount !== 1 ? 's' : ''} processed.
+                </Text>
+              </View>
+            )}
+            {syncStatus === 'error' && lastSyncResult && (
+              <View style={[styles.syncResultBanner, styles.syncResultError]}>
+                <Text style={styles.syncResultTextError}>
+                  {lastSyncResult.error || 'Sync failed'}
+                </Text>
+              </View>
+            )}
 
+            {/* Sync Now button */}
+            <TouchableOpacity
+              style={[styles.buttonWrapper, syncStatus === 'syncing' && styles.buttonDisabled]}
+              onPress={handleSyncNow}
+              disabled={syncStatus === 'syncing'}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#FF006E', '#8338EC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>
+                  {syncStatus === 'syncing' ? 'Syncing…' : 'Sync Now'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Fetch workouts locally */}
             <TouchableOpacity
               style={[styles.outlineButton, loading && styles.buttonDisabled]}
               onPress={() => {
@@ -645,5 +754,71 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
     marginBottom: 4,
+  },
+  connectionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 110, 0.08)',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    gap: 10,
+  },
+  connectionBannerSuccess: {
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+  },
+  connectionBannerError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  connectionBannerText: {
+    color: '#FF006E',
+    fontSize: 13,
+    flex: 1,
+  },
+  connectionBannerTextSuccess: {
+    color: '#22c55e',
+    fontSize: 13,
+    flex: 1,
+  },
+  connectionBannerTextError: {
+    color: '#ef4444',
+    fontSize: 13,
+    flex: 1,
+  },
+  connectionSuccessIcon: {
+    color: '#22c55e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  syncResultBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 0, 110, 0.08)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    gap: 10,
+  },
+  syncResultSuccess: {
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+  },
+  syncResultError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+  },
+  syncResultText: {
+    color: '#FF006E',
+    fontSize: 13,
+    flex: 1,
+  },
+  syncResultTextSuccess: {
+    color: '#22c55e',
+    fontSize: 13,
+    flex: 1,
+  },
+  syncResultTextError: {
+    color: '#ef4444',
+    fontSize: 13,
+    flex: 1,
   },
 });

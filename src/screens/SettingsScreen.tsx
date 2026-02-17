@@ -100,7 +100,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
             : environment === 'test'
                 ? 'https://test.fitglue.tech'
                 : 'https://dev.fitglue.tech';
-        Linking.openURL(baseUrl);
+        Linking.openURL(`${baseUrl}/app`);
     }, []);
 
     const handleOpenPrivacy = useCallback(() => {

@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
-import type { HealthPermissionStatus, WorkoutData } from '../types/health';
+import type { HealthPermissionStatus, WorkoutData, ConnectionStatus } from '../types/health';
 import { post, endpoints } from '../config/api';
 
 export type { WorkoutData } from '../types/health';
@@ -35,6 +35,7 @@ export interface UseHealthResult {
   isAvailable: boolean;
   isInitialized: boolean;
   permissions: HealthPermissionStatus;
+  connectionStatus: ConnectionStatus;
   error: string | null;
   initialize: () => Promise<boolean>;
   requestPermissions: () => Promise<HealthPermissionStatus>;
@@ -50,6 +51,7 @@ export function useHealth(): UseHealthResult {
     routes: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
 
   // Safe wrapper for native module calls — ensures errors are caught
   // even if the native module throws synchronously
@@ -126,9 +128,21 @@ export function useHealth(): UseHealthResult {
 
         setPermissions(newPermissions);
 
-        // Register integration as connected in the backend (fire-and-forget)
+        // Register integration as connected in the backend
         if (newPermissions.workouts) {
-          post(endpoints.mobileConnect('health-connect')).catch(() => { });
+          setConnectionStatus('connecting');
+          try {
+            const result = await post(endpoints.mobileConnect('health-connect'));
+            if (result.error) {
+              console.error('[useHealth] Failed to register Health Connect:', result.error);
+              setConnectionStatus('error');
+            } else {
+              setConnectionStatus('connected');
+            }
+          } catch {
+            console.error('[useHealth] Network error registering Health Connect');
+            setConnectionStatus('error');
+          }
         }
 
         return newPermissions;
@@ -142,8 +156,20 @@ export function useHealth(): UseHealthResult {
         };
         setPermissions(newPermissions);
 
-        // Register integration as connected in the backend (fire-and-forget)
-        post(endpoints.mobileConnect('apple-health')).catch(() => { });
+        // Register integration as connected in the backend
+        setConnectionStatus('connecting');
+        try {
+          const result = await post(endpoints.mobileConnect('apple-health'));
+          if (result.error) {
+            console.error('[useHealth] Failed to register Apple Health:', result.error);
+            setConnectionStatus('error');
+          } else {
+            setConnectionStatus('connected');
+          }
+        } catch {
+          console.error('[useHealth] Network error registering Apple Health');
+          setConnectionStatus('error');
+        }
 
         return newPermissions;
       }
@@ -220,6 +246,7 @@ export function useHealth(): UseHealthResult {
     isAvailable,
     isInitialized,
     permissions,
+    connectionStatus,
     error,
     initialize,
     requestPermissions,

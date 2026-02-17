@@ -12,6 +12,9 @@ export interface HealthPermissionStatus {
   routes: boolean;
 }
 
+// Connection registration status with backend
+export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
+
 // Workout data structure (normalized across platforms)
 export interface WorkoutData {
   id: string;
