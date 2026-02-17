@@ -155,7 +155,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
     navigation.navigate('Settings');
   }, [navigation]);
 
-  const platformName = Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect';
+  const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
   const userInitial = user?.email?.charAt(0)?.toUpperCase() || '?';
 
   const formatSyncTime = (date: Date | null): string => {

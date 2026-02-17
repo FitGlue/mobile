@@ -131,7 +131,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
     }, [signOut]);
 
     const appVersion = Constants.expoConfig?.version ?? '1.0.0';
-    const platformName = Platform.OS === 'ios' ? 'Apple Health' : 'Health Connect';
+    const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
 
     const formatDate = (date: Date | null): string => {
         if (!date) return 'Never';
