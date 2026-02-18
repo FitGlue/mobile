@@ -249,6 +249,37 @@ This gives you a clear "what code is in the store" reference without maintaining
 
 ---
 
+## Local Android Build (Docker)
+
+If an EAS cloud build fails, you can reproduce it locally using Docker. The `Dockerfile.eas-local` mirrors the EAS SDK 54 build server (`ubuntu-24.04-jdk-17-ndk-r27b`), so if it builds locally, it should build in the cloud.
+
+### Prerequisites
+
+- Docker installed in WSL (`sudo apt install docker.io`, then `sudo usermod -aG docker $USER`)
+
+### Usage
+
+```bash
+# Default: production-apk profile
+./scripts/local-build-android.sh
+
+# Specific profile
+./scripts/local-build-android.sh production
+./scripts/local-build-android.sh preview
+```
+
+The script auto-builds the Docker image on first run (~5-10 min for SDK downloads). Subsequent builds reuse the cached image.
+
+### Rebuilding the Docker image
+
+If the EAS build server specs change (e.g. SDK upgrade), rebuild:
+
+```bash
+docker build -f Dockerfile.eas-local -t fitglue-eas-builder --no-cache .
+```
+
+---
+
 ## Further Reading
 
 - [EAS Build docs](https://docs.expo.dev/build/introduction/)

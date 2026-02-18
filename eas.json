@@ -34,6 +34,16 @@
             "env": {
                 "EXPO_PUBLIC_ENVIRONMENT": "production"
             }
+        },
+        "local-verification": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk",
+                "credentialsSource": "local"
+            },
+            "env": {
+                "EXPO_PUBLIC_ENVIRONMENT": "production"
+            }
         }
     },
     "submit": {

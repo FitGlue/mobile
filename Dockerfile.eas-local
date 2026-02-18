@@ -1,0 +1,64 @@
+# EAS-like Android Build Environment for Local Builds
+# Matches EAS SDK 54 image: ubuntu-24.04-jdk-17-ndk-r27b
+# See: https://docs.expo.dev/build-reference/infrastructure/#android-server-images
+
+FROM ubuntu:noble
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/27.1.12297006
+ENV PATH=${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    unzip \
+    openjdk-17-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js 20 (matching EAS SDK 54: Node 20.19.4)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Android SDK command-line tools
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && curl -o /tmp/cmdline-tools.zip \
+       https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm /tmp/cmdline-tools.zip
+
+# Android SDK packages (SDK 35 for compileSdkVersion/targetSdkVersion)
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 \
+    && sdkmanager --install \
+       "platform-tools" \
+       "platforms;android-35" \
+       "build-tools;35.0.0"
+
+# NDK r27b — direct download (sdkmanager chokes on large NDK zips)
+RUN mkdir -p ${ANDROID_HOME}/ndk \
+    && curl -o /tmp/ndk.zip \
+       https://dl.google.com/android/repository/android-ndk-r27b-linux.zip \
+    && unzip -q /tmp/ndk.zip -d /tmp/ndk-extract \
+    && mv /tmp/ndk-extract/android-ndk-r27b ${ANDROID_NDK_HOME} \
+    && rm -rf /tmp/ndk.zip /tmp/ndk-extract
+
+# Gradle configuration matching EAS build servers
+RUN mkdir -p /root/.gradle && printf '\
+org.gradle.jvmargs=-Xmx14g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8\n\
+org.gradle.parallel=true\n\
+org.gradle.configureondemand=true\n\
+org.gradle.daemon=false\n' > /root/.gradle/gradle.properties
+
+# EAS CLI (latest, matching cloud)
+RUN npm install -g eas-cli@latest
+
+# Yarn (matching EAS: 1.22.22)
+RUN npm install -g yarn@1.22.22
+
+WORKDIR /app
+
+# Default: run eas build locally for Android
+CMD ["eas", "build", "--platform", "android", "--local", "--non-interactive"]
