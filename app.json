@@ -58,7 +58,13 @@
         }
       ],
       "expo-web-browser",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "organization": "fitglue",
+          "project": "react-native"
+        }
+      ]
     ],
     "extra": {
       "eas": {
