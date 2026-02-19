@@ -2,7 +2,7 @@
  * Tests for shared formatting utilities.
  */
 
-import { formatRelativeTime, formatSyncStatus, formatDuration, formatDistance, pluralise } from '../formatters';
+import { formatRelativeTime, formatSyncStatus, formatDuration, formatDistance, pluralise, formatTime } from '../formatters';
 
 describe('formatRelativeTime', () => {
     it('returns "Never" for null', () => {
@@ -73,5 +73,27 @@ describe('pluralise', () => {
     it('uses custom plural when provided', () => {
         expect(pluralise(3, 'activity', 'activities')).toBe('activities');
         expect(pluralise(1, 'activity', 'activities')).toBe('activity');
+    });
+});
+
+describe('formatTime', () => {
+    it('formats morning time with zero-padded hours', () => {
+        const date = new Date(2026, 0, 1, 9, 5);
+        expect(formatTime(date)).toBe('09:05');
+    });
+
+    it('formats afternoon time', () => {
+        const date = new Date(2026, 0, 1, 14, 30);
+        expect(formatTime(date)).toBe('14:30');
+    });
+
+    it('formats midnight', () => {
+        const date = new Date(2026, 0, 1, 0, 0);
+        expect(formatTime(date)).toBe('00:00');
+    });
+
+    it('formats end of day', () => {
+        const date = new Date(2026, 0, 1, 23, 59);
+        expect(formatTime(date)).toBe('23:59');
     });
 });

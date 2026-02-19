@@ -12,6 +12,9 @@ const KEYS = {
   SYNC_ENABLED: '@fitglue/sync_enabled',
   USER_PREFERENCES: '@fitglue/user_preferences',
   PENDING_ACTIVITIES: '@fitglue/pending_activities',
+  HEALTH_INITIALIZED: '@fitglue/health_initialized',
+  HEALTH_PERMISSIONS: '@fitglue/health_permissions',
+  HEALTH_CONNECTION_STATUS: '@fitglue/health_connection_status',
 };
 
 /**
@@ -114,9 +117,70 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.SYNC_ENABLED,
       KEYS.USER_PREFERENCES,
       KEYS.PENDING_ACTIVITIES,
+      KEYS.HEALTH_INITIALIZED,
+      KEYS.HEALTH_PERMISSIONS,
+      KEYS.HEALTH_CONNECTION_STATUS,
     ]);
   } catch (e) {
     console.error('[StorageService] Failed to clear storage:', e);
+  }
+}
+
+/**
+ * Persisted health state shape
+ */
+export interface PersistedHealthState {
+  isInitialized: boolean;
+  permissions: { workouts: boolean; heartRate: boolean; routes: boolean };
+  connectionStatus: 'idle' | 'connecting' | 'connected' | 'error';
+}
+
+const DEFAULT_HEALTH_STATE: PersistedHealthState = {
+  isInitialized: false,
+  permissions: { workouts: false, heartRate: false, routes: false },
+  connectionStatus: 'idle',
+};
+
+/**
+ * Get persisted health state (initialization, permissions, connection)
+ */
+export async function getHealthState(): Promise<PersistedHealthState> {
+  try {
+    const initializedVal = await AsyncStorage.getItem(KEYS.HEALTH_INITIALIZED);
+    const permsVal = await AsyncStorage.getItem(KEYS.HEALTH_PERMISSIONS);
+    const statusVal = await AsyncStorage.getItem(KEYS.HEALTH_CONNECTION_STATUS);
+
+    const isInitialized = initializedVal === 'true';
+
+    let permissions = DEFAULT_HEALTH_STATE.permissions;
+    if (permsVal) {
+      try {
+        permissions = JSON.parse(permsVal);
+      } catch {
+        // corrupted — use defaults
+      }
+    }
+
+    const connectionStatus =
+      (statusVal as PersistedHealthState['connectionStatus']) || 'idle';
+
+    return { isInitialized, permissions, connectionStatus };
+  } catch (e) {
+    console.error('[StorageService] Failed to get health state:', e);
+    return DEFAULT_HEALTH_STATE;
+  }
+}
+
+/**
+ * Persist health state
+ */
+export async function setHealthState(state: PersistedHealthState): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.HEALTH_INITIALIZED, state.isInitialized ? 'true' : 'false');
+    await AsyncStorage.setItem(KEYS.HEALTH_PERMISSIONS, JSON.stringify(state.permissions));
+    await AsyncStorage.setItem(KEYS.HEALTH_CONNECTION_STATUS, state.connectionStatus);
+  } catch (e) {
+    console.error('[StorageService] Failed to set health state:', e);
   }
 }
 

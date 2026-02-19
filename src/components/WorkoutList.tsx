@@ -5,7 +5,7 @@
  * sync status badges, and show-more pagination.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -19,6 +19,7 @@ import {
 import { colors, spacing, radii } from '../theme';
 import { WorkoutData } from '../hooks/useHealth';
 import { formatDuration, formatDistance, pluralise } from '../utils/formatters';
+import { WorkoutDetailModal } from './WorkoutDetailModal';
 
 const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
 
@@ -44,6 +45,8 @@ export function WorkoutList({
     onSyncWorkout,
     onShowMore,
 }: WorkoutListProps): JSX.Element | null {
+    const [selectedWorkout, setSelectedWorkout] = useState<WorkoutData | null>(null);
+
     if (workouts.length === 0) return null;
 
     return (
@@ -51,7 +54,7 @@ export function WorkoutList({
             <Text style={styles.cardTitle}>📱 Device Workouts</Text>
             <Text style={styles.cardDescription}>
                 {workouts.length} workout{pluralise(workouts.length, '')} found on your device via {platformName}.{' '}
-                These are not synced yet — tap "Sync →" on any workout to send it to FitGlue.
+                Tap any workout to view details, or hit "Sync →" to send it to FitGlue.
             </Text>
 
             {/* Sync context */}
@@ -67,7 +70,12 @@ export function WorkoutList({
                 const isSynced = syncedIds.has(workout.id);
                 const isSyncing = syncingId === workout.id;
                 return (
-                    <View key={workout.id || index} style={styles.workoutItem}>
+                    <TouchableOpacity
+                        key={workout.id || index}
+                        style={styles.workoutItem}
+                        activeOpacity={0.7}
+                        onPress={() => setSelectedWorkout(workout)}
+                    >
                         <View style={styles.workoutHeader}>
                             <Text style={styles.workoutType}>{workout.type}</Text>
                             <Text style={styles.workoutDate}>
@@ -97,7 +105,10 @@ export function WorkoutList({
                             ) : (
                                 <TouchableOpacity
                                     style={[styles.syncWorkoutButton, isSyncing && styles.buttonDisabled]}
-                                    onPress={() => onSyncWorkout(workout)}
+                                    onPress={(e) => {
+                                        e.stopPropagation();
+                                        onSyncWorkout(workout);
+                                    }}
                                     disabled={isSyncing}
                                     activeOpacity={0.7}
                                 >
@@ -109,9 +120,19 @@ export function WorkoutList({
                                 </TouchableOpacity>
                             )}
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 );
             })}
+
+            {/* Detail Modal */}
+            <WorkoutDetailModal
+                workout={selectedWorkout}
+                visible={selectedWorkout !== null}
+                isSynced={selectedWorkout ? syncedIds.has(selectedWorkout.id) : false}
+                isSyncing={selectedWorkout ? syncingId === selectedWorkout.id : false}
+                onSync={onSyncWorkout}
+                onClose={() => setSelectedWorkout(null)}
+            />
 
             {workouts.length > visibleCount && (
                 <TouchableOpacity

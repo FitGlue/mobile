@@ -3,12 +3,13 @@
  * Cross-platform hook for accessing health data from iOS HealthKit and Android Health Connect
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import type { HealthPermissionStatus, WorkoutData, ConnectionStatus, RoutePoint } from '../types/health';
 import { post, endpoints } from '../config/api';
 import { mapExerciseType } from '../services/AndroidHealthService';
 import { mapActivityType as mapHKActivityType } from '../services/AppleHealthService';
+import * as StorageService from '../services/StorageService';
 
 export type { WorkoutData } from '../types/health';
 
@@ -54,6 +55,19 @@ export function useHealth(): UseHealthResult {
   });
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
+  const hasRestoredRef = useRef(false);
+
+  // Helper: persist current health state to AsyncStorage
+  const persistState = useCallback(
+    (init: boolean, perms: HealthPermissionStatus, connStatus: ConnectionStatus) => {
+      StorageService.setHealthState({
+        isInitialized: init,
+        permissions: perms,
+        connectionStatus: connStatus,
+      }).catch((e) => console.error('[useHealth] Failed to persist health state:', e));
+    },
+    []
+  );
 
   // Safe wrapper for native module calls — ensures errors are caught
   // even if the native module throws synchronously
@@ -95,6 +109,7 @@ export function useHealth(): UseHealthResult {
 
         setIsAvailable(true);
         setIsInitialized(true);
+        persistState(true, permissions, connectionStatus);
         return true;
       }
 
@@ -102,13 +117,16 @@ export function useHealth(): UseHealthResult {
         const initialized = await HealthConnect.initialize();
         setIsAvailable(initialized);
         setIsInitialized(initialized);
+        if (initialized) {
+          persistState(true, permissions, connectionStatus);
+        }
         return initialized;
       }
 
       setError('Health services not available on this platform');
       return false;
     }, false);
-  }, [safeNativeCall]);
+  }, [safeNativeCall, permissions, connectionStatus, persistState]);
 
   // Request permissions
   const requestPermissions = useCallback(async (): Promise<HealthPermissionStatus> => {
@@ -131,22 +149,29 @@ export function useHealth(): UseHealthResult {
         setPermissions(newPermissions);
 
         // Register integration as connected in the backend
+        let newConnStatus: ConnectionStatus = connectionStatus;
         if (newPermissions.workouts) {
           setConnectionStatus('connecting');
+          newConnStatus = 'connecting';
           try {
             const result = await post(endpoints.mobileConnect('health-connect'));
             if (result.error) {
               console.error('[useHealth] Failed to register Health Connect:', result.error);
               setConnectionStatus('error');
+              newConnStatus = 'error';
             } else {
               setConnectionStatus('connected');
+              newConnStatus = 'connected';
             }
           } catch {
             console.error('[useHealth] Network error registering Health Connect');
             setConnectionStatus('error');
+            newConnStatus = 'error';
           }
         }
 
+        // Persist after permissions + connection status are resolved
+        persistState(true, newPermissions, newConnStatus);
         return newPermissions;
       }
 
@@ -159,26 +184,32 @@ export function useHealth(): UseHealthResult {
         setPermissions(newPermissions);
 
         // Register integration as connected in the backend
+        let newConnStatus: ConnectionStatus = 'connecting';
         setConnectionStatus('connecting');
         try {
           const result = await post(endpoints.mobileConnect('apple-health'));
           if (result.error) {
             console.error('[useHealth] Failed to register Apple Health:', result.error);
             setConnectionStatus('error');
+            newConnStatus = 'error';
           } else {
             setConnectionStatus('connected');
+            newConnStatus = 'connected';
           }
         } catch {
           console.error('[useHealth] Network error registering Apple Health');
           setConnectionStatus('error');
+          newConnStatus = 'error';
         }
 
+        // Persist after permissions + connection status are resolved
+        persistState(true, newPermissions, newConnStatus);
         return newPermissions;
       }
 
       return permissions;
     }, permissions);
-  }, [permissions, safeNativeCall]);
+  }, [permissions, connectionStatus, safeNativeCall, persistState]);
 
   // Get workouts
   const getWorkouts = useCallback(
@@ -251,13 +282,42 @@ export function useHealth(): UseHealthResult {
     [safeNativeCall]
   );
 
-  // Check availability on mount
+  // Restore persisted health state on mount + silently re-initialize native SDK
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      setIsAvailable(HealthKitLib != null);
-    } else if (Platform.OS === 'android') {
-      setIsAvailable(HealthConnect != null);
-    }
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    (async () => {
+      // Check native module availability first
+      if (Platform.OS === 'ios') {
+        setIsAvailable(HealthKitLib != null);
+      } else if (Platform.OS === 'android') {
+        setIsAvailable(HealthConnect != null);
+      }
+
+      // Restore persisted state
+      const persisted = await StorageService.getHealthState();
+      if (!persisted.isInitialized) return; // nothing to restore
+
+      console.log('[useHealth] Restoring persisted health state');
+      setIsInitialized(true);
+      setPermissions(persisted.permissions);
+      setConnectionStatus(persisted.connectionStatus);
+
+      // Silently re-initialize the native SDK so it's ready for queries
+      // This doesn't prompt the user — it just sets up the SDK session
+      try {
+        if (Platform.OS === 'android' && HealthConnect) {
+          await HealthConnect.initialize();
+          console.log('[useHealth] Android Health Connect SDK re-initialized');
+        } else if (Platform.OS === 'ios' && HealthKitLib) {
+          await HealthKitLib.isHealthDataAvailable();
+          console.log('[useHealth] iOS HealthKit SDK re-initialized');
+        }
+      } catch (e) {
+        console.warn('[useHealth] Silent SDK re-init failed (non-fatal):', e);
+      }
+    })();
   }, []);
 
   return {

@@ -40,75 +40,67 @@ export interface StandardizedActivity {
  * Health Connect exercise type to activity name mapping
  */
 export const EXERCISE_TYPE_MAP: Record<number, string> = {
-  0: 'Workout',
-  1: 'Badminton',
-  2: 'Baseball',
-  3: 'Basketball',
-  4: 'Cycling',
-  5: 'Cycling',
-  6: 'Workout',
-  7: 'Boxing',
-  8: 'Workout',
-  9: 'Cricket',
-  10: 'Dancing',
-  11: 'Elliptical',
-  12: 'Workout',
-  13: 'Fencing',
-  14: 'Football',
-  15: 'Football',
-  16: 'Frisbee',
-  17: 'Golf',
-  18: 'Meditation',
-  19: 'Gymnastics',
-  20: 'Handball',
-  21: 'HIIT',
-  22: 'Hiking',
-  23: 'Hockey',
-  24: 'HorsebackRiding',
-  25: 'Housework',
-  26: 'IceSkating',
-  27: 'JumpRope',
-  28: 'Kayaking',
-  29: 'MartialArts',
-  30: 'Meditation',
-  31: 'StandUpPaddling',
-  32: 'Paragliding',
-  33: 'Pilates',
-  34: 'Racquetball',
-  35: 'RockClimbing',
-  36: 'Hockey',
-  37: 'Rowing',
-  38: 'Rowing',
-  39: 'Rugby',
-  40: 'Running',
-  41: 'Running',
-  42: 'Sailing',
-  43: 'ScubaDiving',
-  44: 'IceSkating',
-  45: 'AlpineSki',
-  46: 'NordicSki',
-  47: 'AlpineSki',
-  48: 'Snowboarding',
-  49: 'Snowshoeing',
-  50: 'Soccer',
-  51: 'Softball',
-  52: 'Squash',
-  53: 'StairClimbing',
-  54: 'StairClimbing',
-  55: 'WeightTraining',
-  56: 'Stretching',
-  57: 'Surfing',
-  58: 'Swimming',
-  59: 'Swimming',
-  60: 'Swimming',
-  61: 'TableTennis',
-  62: 'Tennis',
-  63: 'Volleyball',
-  64: 'Walking',
-  65: 'WaterPolo',
-  66: 'WeightTraining',
-  67: 'Wheelchair',
-  68: 'Yoga',
+  0: 'Workout',            // EXERCISE_TYPE_OTHER_WORKOUT
+  2: 'Badminton',          // EXERCISE_TYPE_BADMINTON
+  4: 'Baseball',           // EXERCISE_TYPE_BASEBALL
+  5: 'Basketball',         // EXERCISE_TYPE_BASKETBALL
+  8: 'Cycling',            // EXERCISE_TYPE_BIKING
+  9: 'Cycling',            // EXERCISE_TYPE_BIKING_STATIONARY
+  10: 'Workout',           // EXERCISE_TYPE_BOOT_CAMP
+  11: 'Boxing',            // EXERCISE_TYPE_BOXING
+  13: 'Workout',           // EXERCISE_TYPE_CALISTHENICS
+  14: 'Cricket',           // EXERCISE_TYPE_CRICKET
+  16: 'Dancing',           // EXERCISE_TYPE_DANCING
+  25: 'Elliptical',        // EXERCISE_TYPE_ELLIPTICAL
+  26: 'Workout',           // EXERCISE_TYPE_EXERCISE_CLASS
+  27: 'Fencing',           // EXERCISE_TYPE_FENCING
+  28: 'Football',          // EXERCISE_TYPE_FOOTBALL_AMERICAN
+  29: 'Football',          // EXERCISE_TYPE_FOOTBALL_AUSTRALIAN
+  31: 'Frisbee',           // EXERCISE_TYPE_FRISBEE_DISC
+  32: 'Golf',              // EXERCISE_TYPE_GOLF
+  33: 'Meditation',        // EXERCISE_TYPE_GUIDED_BREATHING
+  34: 'Gymnastics',        // EXERCISE_TYPE_GYMNASTICS
+  35: 'Handball',          // EXERCISE_TYPE_HANDBALL
+  36: 'HIIT',              // EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING
+  37: 'Hiking',            // EXERCISE_TYPE_HIKING
+  38: 'Hockey',            // EXERCISE_TYPE_ICE_HOCKEY
+  39: 'IceSkating',        // EXERCISE_TYPE_ICE_SKATING
+  44: 'MartialArts',       // EXERCISE_TYPE_MARTIAL_ARTS
+  46: 'StandUpPaddling',   // EXERCISE_TYPE_PADDLING
+  47: 'Paragliding',       // EXERCISE_TYPE_PARAGLIDING
+  48: 'Pilates',           // EXERCISE_TYPE_PILATES
+  50: 'Racquetball',       // EXERCISE_TYPE_RACQUETBALL
+  51: 'RockClimbing',      // EXERCISE_TYPE_ROCK_CLIMBING
+  52: 'Hockey',            // EXERCISE_TYPE_ROLLER_HOCKEY
+  53: 'Rowing',            // EXERCISE_TYPE_ROWING
+  54: 'Rowing',            // EXERCISE_TYPE_ROWING_MACHINE
+  55: 'Rugby',             // EXERCISE_TYPE_RUGBY
+  56: 'Running',           // EXERCISE_TYPE_RUNNING
+  57: 'Running',           // EXERCISE_TYPE_RUNNING_TREADMILL
+  58: 'Sailing',           // EXERCISE_TYPE_SAILING
+  59: 'ScubaDiving',       // EXERCISE_TYPE_SCUBA_DIVING
+  60: 'IceSkating',        // EXERCISE_TYPE_SKATING
+  61: 'AlpineSki',         // EXERCISE_TYPE_SKIING
+  62: 'Snowboarding',      // EXERCISE_TYPE_SNOWBOARDING
+  63: 'Snowshoeing',       // EXERCISE_TYPE_SNOWSHOEING
+  64: 'Soccer',            // EXERCISE_TYPE_SOCCER
+  65: 'Softball',          // EXERCISE_TYPE_SOFTBALL
+  66: 'Squash',            // EXERCISE_TYPE_SQUASH
+  68: 'StairClimbing',     // EXERCISE_TYPE_STAIR_CLIMBING
+  69: 'StairClimbing',     // EXERCISE_TYPE_STAIR_CLIMBING_MACHINE
+  70: 'WeightTraining',    // EXERCISE_TYPE_STRENGTH_TRAINING
+  71: 'Stretching',        // EXERCISE_TYPE_STRETCHING
+  72: 'Surfing',           // EXERCISE_TYPE_SURFING
+  73: 'Swimming',          // EXERCISE_TYPE_SWIMMING_OPEN_WATER
+  74: 'Swimming',          // EXERCISE_TYPE_SWIMMING_POOL
+  75: 'TableTennis',       // EXERCISE_TYPE_TABLE_TENNIS
+  76: 'Tennis',            // EXERCISE_TYPE_TENNIS
+  78: 'Volleyball',        // EXERCISE_TYPE_VOLLEYBALL
+  79: 'Walking',           // EXERCISE_TYPE_WALKING
+  80: 'WaterPolo',         // EXERCISE_TYPE_WATER_POLO
+  81: 'WeightTraining',    // EXERCISE_TYPE_WEIGHTLIFTING
+  82: 'Wheelchair',        // EXERCISE_TYPE_WHEELCHAIR
+  83: 'Yoga',              // EXERCISE_TYPE_YOGA
 };
 
 /**
@@ -417,6 +409,15 @@ export async function queryNewWorkouts(
 ): Promise<StandardizedActivity[]> {
   if (!HealthConnect) {
     console.warn('[AndroidHealthService] Health Connect not available');
+    return [];
+  }
+
+  // Ensure the SDK is initialized — critical for cold-start background sync
+  // where the app was killed and the background task wakes it
+  try {
+    await HealthConnect.initialize();
+  } catch (e) {
+    console.error('[AndroidHealthService] SDK initialization failed in queryNewWorkouts:', e);
     return [];
   }
 

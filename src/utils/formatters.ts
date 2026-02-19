@@ -51,3 +51,12 @@ export function formatDistance(metres: number): string {
 export function pluralise(count: number, singular: string, plural?: string): string {
     return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Format a Date to HH:MM time string
+ */
+export function formatTime(date: Date): string {
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
+}

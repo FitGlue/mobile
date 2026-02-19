@@ -14,6 +14,8 @@ import {
     getQueuedActivities,
     addToQueue,
     clearQueue,
+    getHealthState,
+    setHealthState,
 } from '../StorageService';
 
 // AsyncStorage is automatically mocked by jest-expo
@@ -89,16 +91,59 @@ describe('activity queue', () => {
     });
 });
 
+describe('healthState', () => {
+    it('returns defaults when nothing stored', async () => {
+        const result = await getHealthState();
+        expect(result).toEqual({
+            isInitialized: false,
+            permissions: { workouts: false, heartRate: false, routes: false },
+            connectionStatus: 'idle',
+        });
+    });
+
+    it('round-trips health state correctly', async () => {
+        const state = {
+            isInitialized: true,
+            permissions: { workouts: true, heartRate: true, routes: false },
+            connectionStatus: 'connected' as const,
+        };
+        await setHealthState(state);
+        const result = await getHealthState();
+        expect(result).toEqual(state);
+    });
+
+    it('handles partial permissions', async () => {
+        const state = {
+            isInitialized: true,
+            permissions: { workouts: true, heartRate: false, routes: false },
+            connectionStatus: 'error' as const,
+        };
+        await setHealthState(state);
+        const result = await getHealthState();
+        expect(result.permissions.workouts).toBe(true);
+        expect(result.permissions.heartRate).toBe(false);
+        expect(result.connectionStatus).toBe('error');
+    });
+});
+
 describe('clearAllStorage', () => {
-    it('clears all keys', async () => {
+    it('clears all keys including health state', async () => {
         await setLastSyncDate(new Date());
         await setSyncEnabled(false);
         await addToQueue([{ id: '1' }]);
+        await setHealthState({
+            isInitialized: true,
+            permissions: { workouts: true, heartRate: true, routes: false },
+            connectionStatus: 'connected',
+        });
 
         await clearAllStorage();
 
         expect(await getLastSyncDate()).toBeNull();
         expect(await isSyncEnabled()).toBe(true); // defaults back to true
         expect(await getQueuedActivities()).toEqual([]);
+        const health = await getHealthState();
+        expect(health.isInitialized).toBe(false);
+        expect(health.connectionStatus).toBe('idle');
     });
 });
