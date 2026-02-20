@@ -12,7 +12,7 @@ export const colors = {
 
     // Backgrounds
     background: '#0d0d0d',
-    surface: 'rgba(26, 26, 26, 0.9)',
+    surface: '#1a1a1a',
     surfaceBorder: 'rgba(255, 255, 255, 0.1)',
 
     // Text
@@ -35,6 +35,21 @@ export const colors = {
     primaryTrack: 'rgba(255, 0, 110, 0.4)',
     secondarySurface: 'rgba(131, 56, 236, 0.1)',
     successSurface: 'rgba(34, 197, 94, 0.15)',
+
+    // Data pills
+    pillBackground: 'rgba(255, 255, 255, 0.08)',
+    pillBorder: 'rgba(255, 255, 255, 0.12)',
+
+    // HR chart zones
+    hrZoneLow: '#22c55e',
+    hrZoneMod: '#eab308',
+    hrZoneHigh: '#f97316',
+    hrZoneMax: '#ef4444',
+
+    // Route
+    routeLine: '#FF006E',
+    routeStart: '#22c55e',
+    routeEnd: '#ef4444',
 
     // Dividers
     divider: 'rgba(255, 255, 255, 0.1)',

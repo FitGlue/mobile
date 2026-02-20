@@ -2,10 +2,11 @@
  * Workout List Component
  *
  * Displays device workouts with per-item sync buttons,
- * sync status badges, and show-more pagination.
+ * sync status badges, data-type pills, and show-more pagination.
+ * Tapping a workout navigates to the full WorkoutDetail screen.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -16,10 +17,12 @@ import {
     LayoutAnimation,
     UIManager,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, spacing, radii } from '../theme';
 import { WorkoutData } from '../hooks/useHealth';
 import { formatDuration, formatDistance, pluralise } from '../utils/formatters';
-import { WorkoutDetailModal } from './WorkoutDetailModal';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
 
@@ -27,6 +30,8 @@ const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 interface WorkoutListProps {
     workouts: WorkoutData[];
@@ -45,9 +50,18 @@ export function WorkoutList({
     onSyncWorkout,
     onShowMore,
 }: WorkoutListProps): JSX.Element | null {
-    const [selectedWorkout, setSelectedWorkout] = useState<WorkoutData | null>(null);
+    const navigation = useNavigation<NavigationProp>();
 
     if (workouts.length === 0) return null;
+
+    const openDetail = (workout: WorkoutData) => {
+        navigation.navigate('WorkoutDetail', {
+            workout,
+            isSynced: syncedIds.has(workout.id),
+            isSyncing: syncingId === workout.id,
+            onSync: onSyncWorkout,
+        });
+    };
 
     return (
         <View style={styles.card}>
@@ -69,12 +83,16 @@ export function WorkoutList({
             {workouts.slice(0, visibleCount).map((workout, index) => {
                 const isSynced = syncedIds.has(workout.id);
                 const isSyncing = syncingId === workout.id;
+                const hasHr = workout.heartRateSamples && workout.heartRateSamples.length > 0;
+                const hasRoute = workout.route && workout.route.length > 0;
+                const hasCal = workout.calories != null && workout.calories > 0;
+
                 return (
                     <TouchableOpacity
                         key={workout.id || index}
                         style={styles.workoutItem}
                         activeOpacity={0.7}
-                        onPress={() => setSelectedWorkout(workout)}
+                        onPress={() => openDetail(workout)}
                     >
                         <View style={styles.workoutHeader}>
                             <Text style={styles.workoutType}>{workout.type}</Text>
@@ -120,19 +138,18 @@ export function WorkoutList({
                                 </TouchableOpacity>
                             )}
                         </View>
+
+                        {/* Data pills */}
+                        {(hasHr || hasRoute || hasCal) && (
+                            <View style={styles.pillRow}>
+                                {hasHr && <MiniPill emoji="❤️" label="HR" />}
+                                {hasRoute && <MiniPill emoji="📍" label="GPS" />}
+                                {hasCal && <MiniPill emoji="🔥" label="Cal" />}
+                            </View>
+                        )}
                     </TouchableOpacity>
                 );
             })}
-
-            {/* Detail Modal */}
-            <WorkoutDetailModal
-                workout={selectedWorkout}
-                visible={selectedWorkout !== null}
-                isSynced={selectedWorkout ? syncedIds.has(selectedWorkout.id) : false}
-                isSyncing={selectedWorkout ? syncingId === selectedWorkout.id : false}
-                onSync={onSyncWorkout}
-                onClose={() => setSelectedWorkout(null)}
-            />
 
             {workouts.length > visibleCount && (
                 <TouchableOpacity
@@ -148,6 +165,17 @@ export function WorkoutList({
                     </Text>
                 </TouchableOpacity>
             )}
+        </View>
+    );
+}
+
+/* ─── Mini Pill ─────────────────────────────────────────────── */
+
+function MiniPill({ emoji, label }: { emoji: string; label: string }): JSX.Element {
+    return (
+        <View style={styles.pill}>
+            <Text style={styles.pillEmoji}>{emoji}</Text>
+            <Text style={styles.pillLabel}>{label}</Text>
         </View>
     );
 }
@@ -215,6 +243,32 @@ const styles = StyleSheet.create({
     workoutStat: {
         fontSize: 13,
         color: '#ccc',
+    },
+    pillRow: {
+        flexDirection: 'row',
+        gap: 6,
+        marginTop: 6,
+    },
+    pill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: colors.pillBackground,
+        borderWidth: 1,
+        borderColor: colors.pillBorder,
+        borderRadius: radii.round,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+    },
+    pillEmoji: {
+        fontSize: 10,
+    },
+    pillLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: colors.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
     },
     showMoreButton: {
         borderWidth: 1,

@@ -16,6 +16,8 @@ import {
     clearQueue,
     getHealthState,
     setHealthState,
+    getSyncedIds,
+    addSyncedId,
 } from '../StorageService';
 
 // AsyncStorage is automatically mocked by jest-expo
@@ -127,7 +129,7 @@ describe('healthState', () => {
 });
 
 describe('clearAllStorage', () => {
-    it('clears all keys including health state', async () => {
+    it('clears all keys including health state and synced IDs', async () => {
         await setLastSyncDate(new Date());
         await setSyncEnabled(false);
         await addToQueue([{ id: '1' }]);
@@ -136,6 +138,7 @@ describe('clearAllStorage', () => {
             permissions: { workouts: true, heartRate: true, routes: false },
             connectionStatus: 'connected',
         });
+        await addSyncedId('act-1');
 
         await clearAllStorage();
 
@@ -145,5 +148,38 @@ describe('clearAllStorage', () => {
         const health = await getHealthState();
         expect(health.isInitialized).toBe(false);
         expect(health.connectionStatus).toBe('idle');
+        const synced = await getSyncedIds();
+        expect(synced.size).toBe(0);
+    });
+});
+
+describe('syncedActivityIds', () => {
+    it('returns empty set when nothing stored', async () => {
+        const result = await getSyncedIds();
+        expect(result).toEqual(new Set());
+        expect(result.size).toBe(0);
+    });
+
+    it('adds and retrieves a synced ID', async () => {
+        await addSyncedId('workout-1');
+        const result = await getSyncedIds();
+        expect(result.has('workout-1')).toBe(true);
+        expect(result.size).toBe(1);
+    });
+
+    it('deduplicates IDs', async () => {
+        await addSyncedId('workout-1');
+        await addSyncedId('workout-1');
+        const result = await getSyncedIds();
+        expect(result.size).toBe(1);
+    });
+
+    it('stores multiple IDs', async () => {
+        await addSyncedId('workout-1');
+        await addSyncedId('workout-2');
+        await addSyncedId('workout-3');
+        const result = await getSyncedIds();
+        expect(result.size).toBe(3);
+        expect(result.has('workout-2')).toBe(true);
     });
 });

@@ -300,3 +300,36 @@ export async function submitActivities(
     syncedAt: result.success ? new Date() : undefined,
   };
 }
+
+/**
+ * Fetch the list of activity IDs already stored on the FitGlue backend.
+ * Used to rebuild synced-status badges after app reinstall or storage clear.
+ */
+export async function fetchRemoteSyncedIds(): Promise<string[]> {
+  const token = await getAuthToken();
+  if (!token) {
+    console.warn('[SyncService] Cannot fetch remote synced IDs: not authenticated');
+    return [];
+  }
+
+  const url = `${apiConfig.baseUrl}/api/mobile/activities`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn('[SyncService] Failed to fetch remote synced IDs:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.activityIds ?? [];
+  } catch (e) {
+    console.warn('[SyncService] Network error fetching remote synced IDs:', e);
+    return [];
+  }
+}

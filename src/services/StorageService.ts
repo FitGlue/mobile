@@ -15,6 +15,7 @@ const KEYS = {
   HEALTH_INITIALIZED: '@fitglue/health_initialized',
   HEALTH_PERMISSIONS: '@fitglue/health_permissions',
   HEALTH_CONNECTION_STATUS: '@fitglue/health_connection_status',
+  SYNCED_ACTIVITY_IDS: '@fitglue/synced_activity_ids',
 };
 
 /**
@@ -120,6 +121,7 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.HEALTH_INITIALIZED,
       KEYS.HEALTH_PERMISSIONS,
       KEYS.HEALTH_CONNECTION_STATUS,
+      KEYS.SYNCED_ACTIVITY_IDS,
     ]);
   } catch (e) {
     console.error('[StorageService] Failed to clear storage:', e);
@@ -231,5 +233,38 @@ export async function clearQueue(): Promise<void> {
     await AsyncStorage.removeItem(KEYS.PENDING_ACTIVITIES);
   } catch (e) {
     console.error('[StorageService] Failed to clear queue:', e);
+  }
+}
+
+/**
+ * Get the set of activity IDs that have been synced to FitGlue
+ */
+export async function getSyncedIds(): Promise<Set<string>> {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.SYNCED_ACTIVITY_IDS);
+    if (value) {
+      const ids: string[] = JSON.parse(value);
+      return new Set(ids);
+    }
+    return new Set();
+  } catch (e) {
+    console.error('[StorageService] Failed to get synced IDs:', e);
+    return new Set();
+  }
+}
+
+/**
+ * Mark an activity ID as synced and persist to storage
+ */
+export async function addSyncedId(id: string): Promise<void> {
+  try {
+    const current = await getSyncedIds();
+    current.add(id);
+    await AsyncStorage.setItem(
+      KEYS.SYNCED_ACTIVITY_IDS,
+      JSON.stringify([...current])
+    );
+  } catch (e) {
+    console.error('[StorageService] Failed to add synced ID:', e);
   }
 }

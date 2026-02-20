@@ -24,7 +24,7 @@ import { useHealth, WorkoutData } from '../hooks/useHealth';
 import { environment } from '../config/environment';
 import * as StorageService from '../services/StorageService';
 import { triggerManualSync } from '../services/BackgroundSyncTask';
-import { submitActivities } from '../services/SyncService';
+import { submitActivities, fetchRemoteSyncedIds } from '../services/SyncService';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { formatRelativeTime } from '../utils/formatters';
 import { colors, spacing, radii } from '../theme';
@@ -66,9 +66,10 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const syncDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load last sync date on mount
+  // Load last sync date and persisted synced IDs on mount
   useEffect(() => {
     StorageService.getLastSyncDate().then(setLastSync);
+    StorageService.getSyncedIds().then(setSyncedIds);
   }, []);
 
   // Clean up auto-dismiss timer
@@ -133,6 +134,26 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       setWorkouts(data);
       setVisibleCount(10);
       setLastSync(new Date());
+
+      // Seed synced IDs from backend if local storage is empty
+      // (handles reinstall / storage clear)
+      const localIds = await StorageService.getSyncedIds();
+      if (localIds.size === 0 && data.length > 0) {
+        try {
+          const remoteIds = await fetchRemoteSyncedIds();
+          const deviceIds = new Set(data.map(w => w.id));
+          const intersection = remoteIds.filter(id => deviceIds.has(id));
+          if (intersection.length > 0) {
+            const seeded = new Set(intersection);
+            setSyncedIds(seeded);
+            for (const id of intersection) {
+              await StorageService.addSyncedId(id);
+            }
+          }
+        } catch {
+          // Non-fatal — local-only badges still work
+        }
+      }
     } catch (err) {
       console.error('[HomeScreen] Fetch workouts failed:', err);
     } finally {
@@ -147,6 +168,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       const result = await submitActivities([workout]);
       if (result.success) {
         setSyncedIds((prev) => new Set(prev).add(workout.id));
+        await StorageService.addSyncedId(workout.id);
       } else {
         Alert.alert('Sync Failed', result.error || 'Could not sync this workout.');
       }

@@ -14,7 +14,8 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import { LoginScreen, HomeScreen, OnboardingScreen, SettingsScreen } from '../screens';
+import { LoginScreen, HomeScreen, OnboardingScreen, SettingsScreen, WorkoutDetailScreen } from '../screens';
+import type { WorkoutData } from '../hooks/useHealth';
 import { navigationIntegration } from '../../App';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
@@ -25,6 +26,12 @@ export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
   Settings: undefined;
+  WorkoutDetail: {
+    workout: WorkoutData;
+    isSynced: boolean;
+    isSyncing: boolean;
+    onSync: (workout: WorkoutData) => void;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -80,6 +87,11 @@ export function AppNavigator(): JSX.Element {
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="WorkoutDetail"
+              component={WorkoutDetailScreen}
               options={{ animation: 'slide_from_right' }}
             />
           </>
