@@ -64,13 +64,13 @@ export const EXERCISE_TYPE_MAP: Record<number, string> = {
   36: 'HIIT',              // EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING
   37: 'Hiking',            // EXERCISE_TYPE_HIKING
   38: 'Hockey',            // EXERCISE_TYPE_ICE_HOCKEY
-  39: 'IceSkating',        // EXERCISE_TYPE_ICE_SKATING
-  44: 'MartialArts',       // EXERCISE_TYPE_MARTIAL_ARTS
-  46: 'StandUpPaddling',   // EXERCISE_TYPE_PADDLING
+  39: 'Ice Skating',       // EXERCISE_TYPE_ICE_SKATING
+  44: 'Martial Arts',      // EXERCISE_TYPE_MARTIAL_ARTS
+  46: 'Stand Up Paddling', // EXERCISE_TYPE_PADDLING
   47: 'Paragliding',       // EXERCISE_TYPE_PARAGLIDING
   48: 'Pilates',           // EXERCISE_TYPE_PILATES
   50: 'Racquetball',       // EXERCISE_TYPE_RACQUETBALL
-  51: 'RockClimbing',      // EXERCISE_TYPE_ROCK_CLIMBING
+  51: 'Rock Climbing',     // EXERCISE_TYPE_ROCK_CLIMBING
   52: 'Hockey',            // EXERCISE_TYPE_ROLLER_HOCKEY
   53: 'Rowing',            // EXERCISE_TYPE_ROWING
   54: 'Rowing',            // EXERCISE_TYPE_ROWING_MACHINE
@@ -78,27 +78,27 @@ export const EXERCISE_TYPE_MAP: Record<number, string> = {
   56: 'Running',           // EXERCISE_TYPE_RUNNING
   57: 'Running',           // EXERCISE_TYPE_RUNNING_TREADMILL
   58: 'Sailing',           // EXERCISE_TYPE_SAILING
-  59: 'ScubaDiving',       // EXERCISE_TYPE_SCUBA_DIVING
-  60: 'IceSkating',        // EXERCISE_TYPE_SKATING
-  61: 'AlpineSki',         // EXERCISE_TYPE_SKIING
+  59: 'Scuba Diving',      // EXERCISE_TYPE_SCUBA_DIVING
+  60: 'Ice Skating',       // EXERCISE_TYPE_SKATING
+  61: 'Alpine Ski',        // EXERCISE_TYPE_SKIING
   62: 'Snowboarding',      // EXERCISE_TYPE_SNOWBOARDING
   63: 'Snowshoeing',       // EXERCISE_TYPE_SNOWSHOEING
   64: 'Soccer',            // EXERCISE_TYPE_SOCCER
   65: 'Softball',          // EXERCISE_TYPE_SOFTBALL
   66: 'Squash',            // EXERCISE_TYPE_SQUASH
-  68: 'StairClimbing',     // EXERCISE_TYPE_STAIR_CLIMBING
-  69: 'StairClimbing',     // EXERCISE_TYPE_STAIR_CLIMBING_MACHINE
-  70: 'WeightTraining',    // EXERCISE_TYPE_STRENGTH_TRAINING
+  68: 'Stair Climbing',    // EXERCISE_TYPE_STAIR_CLIMBING
+  69: 'Stair Climbing',    // EXERCISE_TYPE_STAIR_CLIMBING_MACHINE
+  70: 'Weight Training',   // EXERCISE_TYPE_STRENGTH_TRAINING
   71: 'Stretching',        // EXERCISE_TYPE_STRETCHING
   72: 'Surfing',           // EXERCISE_TYPE_SURFING
   73: 'Swimming',          // EXERCISE_TYPE_SWIMMING_OPEN_WATER
   74: 'Swimming',          // EXERCISE_TYPE_SWIMMING_POOL
-  75: 'TableTennis',       // EXERCISE_TYPE_TABLE_TENNIS
+  75: 'Table Tennis',      // EXERCISE_TYPE_TABLE_TENNIS
   76: 'Tennis',            // EXERCISE_TYPE_TENNIS
   78: 'Volleyball',        // EXERCISE_TYPE_VOLLEYBALL
   79: 'Walking',           // EXERCISE_TYPE_WALKING
-  80: 'WaterPolo',         // EXERCISE_TYPE_WATER_POLO
-  81: 'WeightTraining',    // EXERCISE_TYPE_WEIGHTLIFTING
+  80: 'Water Polo',        // EXERCISE_TYPE_WATER_POLO
+  81: 'Weight Training',   // EXERCISE_TYPE_WEIGHTLIFTING
   82: 'Wheelchair',        // EXERCISE_TYPE_WHEELCHAIR
   83: 'Yoga',              // EXERCISE_TYPE_YOGA
 };

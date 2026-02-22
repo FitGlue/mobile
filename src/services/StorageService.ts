@@ -16,6 +16,7 @@ const KEYS = {
   HEALTH_PERMISSIONS: '@fitglue/health_permissions',
   HEALTH_CONNECTION_STATUS: '@fitglue/health_connection_status',
   SYNCED_ACTIVITY_IDS: '@fitglue/synced_activity_ids',
+  CACHED_WORKOUTS: '@fitglue/cached_workouts',
 };
 
 /**
@@ -122,6 +123,7 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.HEALTH_PERMISSIONS,
       KEYS.HEALTH_CONNECTION_STATUS,
       KEYS.SYNCED_ACTIVITY_IDS,
+      KEYS.CACHED_WORKOUTS,
     ]);
   } catch (e) {
     console.error('[StorageService] Failed to clear storage:', e);
@@ -266,5 +268,38 @@ export async function addSyncedId(id: string): Promise<void> {
     );
   } catch (e) {
     console.error('[StorageService] Failed to add synced ID:', e);
+  }
+}
+
+/**
+ * Get cached workouts from storage (for instant display on mount)
+ */
+export async function getCachedWorkouts(): Promise<any[]> {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.CACHED_WORKOUTS);
+    if (value) {
+      const parsed = JSON.parse(value);
+      // Rehydrate Date fields
+      return parsed.map((w: any) => ({
+        ...w,
+        startDate: new Date(w.startDate),
+        endDate: new Date(w.endDate),
+      }));
+    }
+    return [];
+  } catch (e) {
+    console.error('[StorageService] Failed to get cached workouts:', e);
+    return [];
+  }
+}
+
+/**
+ * Cache workouts to storage for instant display on next mount
+ */
+export async function setCachedWorkouts(workouts: any[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.CACHED_WORKOUTS, JSON.stringify(workouts));
+  } catch (e) {
+    console.error('[StorageService] Failed to cache workouts:', e);
   }
 }

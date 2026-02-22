@@ -75,7 +75,7 @@ export function WorkoutList({
             {syncedIds.size > 0 && (
                 <View style={styles.syncContextBanner}>
                     <Text style={styles.syncContextText}>
-                        ✓ {syncedIds.size} workout{pluralise(syncedIds.size, '')} synced to FitGlue this session
+                        ✓ {syncedIds.size} workout{pluralise(syncedIds.size, '')} synced to FitGlue
                     </Text>
                 </View>
             )}

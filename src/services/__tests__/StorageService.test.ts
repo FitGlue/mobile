@@ -18,6 +18,8 @@ import {
     setHealthState,
     getSyncedIds,
     addSyncedId,
+    getCachedWorkouts,
+    setCachedWorkouts,
 } from '../StorageService';
 
 // AsyncStorage is automatically mocked by jest-expo
@@ -150,6 +152,8 @@ describe('clearAllStorage', () => {
         expect(health.connectionStatus).toBe('idle');
         const synced = await getSyncedIds();
         expect(synced.size).toBe(0);
+        const cached = await getCachedWorkouts();
+        expect(cached).toEqual([]);
     });
 });
 
@@ -181,5 +185,50 @@ describe('syncedActivityIds', () => {
         const result = await getSyncedIds();
         expect(result.size).toBe(3);
         expect(result.has('workout-2')).toBe(true);
+    });
+});
+
+describe('cachedWorkouts', () => {
+    it('returns empty array when nothing stored', async () => {
+        const result = await getCachedWorkouts();
+        expect(result).toEqual([]);
+    });
+
+    it('round-trips workouts with date rehydration', async () => {
+        const workouts = [
+            {
+                id: 'w-1',
+                type: 'Running',
+                startDate: new Date('2026-02-20T08:00:00.000Z'),
+                endDate: new Date('2026-02-20T08:30:00.000Z'),
+                duration: 1800,
+                source: 'health_connect',
+            },
+            {
+                id: 'w-2',
+                type: 'Cycling',
+                startDate: new Date('2026-02-19T17:00:00.000Z'),
+                endDate: new Date('2026-02-19T18:00:00.000Z'),
+                duration: 3600,
+                distance: 25000,
+                source: 'health_connect',
+            },
+        ];
+        await setCachedWorkouts(workouts);
+        const result = await getCachedWorkouts();
+        expect(result).toHaveLength(2);
+        expect(result[0].id).toBe('w-1');
+        expect(result[0].type).toBe('Running');
+        expect(result[0].startDate).toBeInstanceOf(Date);
+        expect(result[0].startDate.toISOString()).toBe('2026-02-20T08:00:00.000Z');
+        expect(result[1].distance).toBe(25000);
+    });
+
+    it('overwrites previous cache', async () => {
+        await setCachedWorkouts([{ id: 'old', type: 'Walking', startDate: new Date(), endDate: new Date(), duration: 600 }]);
+        await setCachedWorkouts([{ id: 'new', type: 'Running', startDate: new Date(), endDate: new Date(), duration: 1200 }]);
+        const result = await getCachedWorkouts();
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('new');
     });
 });

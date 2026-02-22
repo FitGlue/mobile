@@ -66,10 +66,15 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const syncDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load last sync date and persisted synced IDs on mount
+  // Load last sync date, persisted synced IDs, and cached workouts on mount
   useEffect(() => {
     StorageService.getLastSyncDate().then(setLastSync);
     StorageService.getSyncedIds().then(setSyncedIds);
+    StorageService.getCachedWorkouts().then((cached) => {
+      if (cached.length > 0) {
+        setWorkouts(cached);
+      }
+    });
   }, []);
 
   // Clean up auto-dismiss timer
@@ -134,6 +139,9 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       setWorkouts(data);
       setVisibleCount(10);
       setLastSync(new Date());
+
+      // Cache workouts for instant display on next mount
+      StorageService.setCachedWorkouts(data);
 
       // Seed synced IDs from backend if local storage is empty
       // (handles reinstall / storage clear)
