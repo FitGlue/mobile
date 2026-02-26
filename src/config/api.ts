@@ -112,23 +112,32 @@ export function del<T>(endpoint: string): Promise<ApiResponse<T>> {
   return apiRequest<T>(endpoint, { method: 'DELETE' });
 }
 
+/**
+ * PUT request
+ */
+export function put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  return apiRequest<T>(endpoint, {
+    method: 'PUT',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
 // API endpoints
 export const endpoints = {
   // User
-  me: '/api/users/me',
-  integrations: '/api/users/me/integrations',
-  pipelines: '/api/users/me/pipelines',
+  me: '/api/v2/users/me',
+  integrations: '/api/v2/users/me/integrations',
+  pipelines: '/api/v2/users/me/pipelines',
 
   // Activities
-  activities: '/api/activities',
-  activityStats: '/api/activities/stats',
-  unsynchronized: '/api/activities/unsynchronized',
+  activities: '/api/v2/users/me/activities',
+  activityStats: '/api/v2/users/me/activities/stats',
 
   // Inputs
-  inputs: '/api/inputs',
-  fcmToken: '/api/inputs/fcm-token',
+  inputs: '/api/v2/users/me/pending-inputs',
+  fcmToken: '/api/v2/users/me/fcm-token',
 
   // Mobile-specific
-  mobileSync: '/api/mobile/sync',
-  mobileConnect: (provider: string) => `/api/mobile/connect/${provider}`,
+  mobileSync: '/api/v2/users/me/mobile/sync',
+  mobileConnect: (provider: string) => `/api/v2/users/me/integrations/${provider}/connect`,
 };
