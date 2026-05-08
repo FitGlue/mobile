@@ -91,8 +91,8 @@ export function RoutePreview({ route, height = DEFAULT_HEIGHT }: RoutePreviewPro
                                     width: size,
                                     height: size,
                                     borderRadius: size / 2,
-                                    left: `${(x * 100).toFixed(2)}%`,
-                                    top: `${(y * 100).toFixed(2)}%`,
+                                    left: `${(x * 100).toFixed(2)}%` as `${number}%`,
+                                    top: `${(y * 100).toFixed(2)}%` as `${number}%`,
                                     backgroundColor: isFirst
                                         ? colors.routeStart
                                         : isLast

@@ -124,7 +124,7 @@ export async function getBackgroundFetchStatus(): Promise<{
   isAvailable: boolean;
 }> {
   try {
-    const status = await BackgroundFetch.getStatusAsync();
+    const status = await BackgroundFetch.getStatusAsync() ?? BackgroundFetch.BackgroundFetchStatus.Denied;
 
     const statusNames: Record<BackgroundFetch.BackgroundFetchStatus, string> = {
       [BackgroundFetch.BackgroundFetchStatus.Restricted]: 'Restricted',
@@ -134,7 +134,7 @@ export async function getBackgroundFetchStatus(): Promise<{
 
     return {
       status,
-      statusName: statusNames[status] || 'Unknown',
+      statusName: statusNames[status] ?? 'Unknown',
       isAvailable: status === BackgroundFetch.BackgroundFetchStatus.Available,
     };
   } catch (error) {
