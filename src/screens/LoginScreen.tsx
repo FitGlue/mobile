@@ -1,8 +1,9 @@
 /**
- * FitGlue Mobile Login Screen
+ * FitGlue Mobile Login Screen — Brutal × Aurora
  *
- * Allows users to sign in with their existing FitGlue credentials.
- * Registration is not available - users must register via the website.
+ * Aurora brand panel at top + auth form below.
+ * No border-radius on inputs or cards (BA rule).
+ * Registration links redirect to web.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -24,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../context/AuthContext';
 import { environment } from '../config/environment';
+import { colors, gradients, spacing } from '../theme';
 
 export function LoginScreen(): JSX.Element {
   const { signIn, isLoading, error, clearError } = useAuth();
@@ -36,12 +38,10 @@ export function LoginScreen(): JSX.Element {
       Alert.alert('Email Required', 'Please enter your email address.');
       return;
     }
-
     if (!password) {
       Alert.alert('Password Required', 'Please enter your password.');
       return;
     }
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearError();
     await signIn(email.trim(), password);
@@ -66,124 +66,132 @@ export function LoginScreen(): JSX.Element {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo and Title */}
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.titleFit}>Fit</Text>
-            <Text style={styles.titleGlue}>Glue</Text>
-          </View>
-          <Text style={styles.subtitle}>Welcome back 👋</Text>
-        </View>
+        {/* Aurora brand panel */}
+        <LinearGradient
+          colors={gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.brandPanel}
+        >
+          <Text style={styles.brandWordmark}>FITGLUE</Text>
+          <Text style={styles.brandTagline}>YOUR FITNESS APPS, FINALLY TALKING.</Text>
+        </LinearGradient>
 
-        {/* Environment Badge (dev/test only) */}
+        {/* Environment badge (dev/test only) */}
         {environment !== 'production' && (
           <View style={styles.envBadge}>
-            <Text style={styles.envBadgeText}>
-              {environment.toUpperCase()}
-            </Text>
+            <Text style={styles.envBadgeText}>{environment.toUpperCase()}</Text>
           </View>
         )}
 
-        {/* Login Card */}
-        <View style={styles.card}>
-          {/* Error Message */}
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {/* Login Form */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              editable={!isLoading}
-            />
+        {/* Auth form panel */}
+        <View style={styles.formPanel}>
+          {/* Panel header band */}
+          <View style={styles.formBand}>
+            <Text style={styles.formBandTitle}>SIGN IN</Text>
+            <Text style={styles.formBandRight}>EXISTING ACCOUNT</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <View style={styles.passwordContainer}>
+          <View style={styles.formBody}>
+            {/* Error message */}
+            {error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error.toUpperCase()}</Text>
+              </View>
+            )}
+
+            {/* Email field */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>EMAIL</Text>
               <TextInput
-                style={[styles.input, styles.passwordInput]}
-                placeholder="Password"
-                placeholderTextColor="#666"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                style={styles.input}
+                placeholder="you@example.com"
+                placeholderTextColor={colors.textDim}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="password"
+                autoComplete="email"
                 editable={!isLoading}
               />
-              <TouchableOpacity
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Text style={styles.passwordToggleText}>
-                  {showPassword ? 'Hide' : 'Show'}
-                </Text>
-              </TouchableOpacity>
             </View>
-          </View>
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={handleForgotPassword}
-          >
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-          </TouchableOpacity>
+            {/* Password field */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.textDim}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="password"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.showHideButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.showHideText}>
+                    {showPassword ? 'HIDE' : 'SHOW'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          <TouchableOpacity
-            style={[styles.buttonWrapper, isLoading && styles.buttonDisabled]}
-            onPress={handleSignIn}
-            disabled={isLoading}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#FF006E', '#8338EC']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradientButton}
+            {/* Forgot password */}
+            <TouchableOpacity
+              style={styles.forgotRow}
+              onPress={handleForgotPassword}
             >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>LOGIN</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* Register Link */}
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Don't have an account?</Text>
-          <TouchableOpacity onPress={handleRegisterLink}>
-            <Text style={styles.registerLink}>Register</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            By signing in, you agree to our{' '}
-          </Text>
-          <View style={styles.footerLinks}>
-            <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/terms')}>
-              <Text style={styles.footerLink}>Terms of Service</Text>
+              <Text style={styles.forgotText}>FORGOT PASSWORD →</Text>
             </TouchableOpacity>
-            <Text style={styles.footerText}> and </Text>
-            <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/privacy')}>
-              <Text style={styles.footerLink}>Privacy Policy</Text>
+
+            {/* Submit button */}
+            <TouchableOpacity
+              style={[styles.submitWrapper, isLoading && styles.buttonDisabled]}
+              onPress={handleSignIn}
+              disabled={isLoading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={gradients.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitButton}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.ink} />
+                ) : (
+                  <Text style={styles.submitText}>LOGIN →</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Register link */}
+        <View style={styles.registerRow}>
+          <Text style={styles.registerText}>DON'T HAVE AN ACCOUNT?</Text>
+          <TouchableOpacity onPress={handleRegisterLink}>
+            <Text style={styles.registerLink}>REGISTER AT FITGLUE.TECH →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal footer */}
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/terms')}>
+            <Text style={styles.legalLink}>TERMS</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSep}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://fitglue.tech/privacy')}>
+            <Text style={styles.legalLink}>PRIVACY</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -193,167 +201,218 @@ export function LoginScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d0d0d',
+    backgroundColor: colors.ink,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
+  // Aurora brand panel
+  brandPanel: {
+    paddingTop: 72,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.lg,
   },
-  logo: {
-    fontSize: 64,
-    marginBottom: 16,
+  brandWordmark: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: colors.ink,
+    textTransform: 'uppercase',
+    letterSpacing: -1,
+    lineHeight: 50,
   },
-  titleRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
+  brandTagline: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.ink,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    opacity: 0.7,
+    marginTop: 6,
   },
-  titleFit: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FF006E', // Pink — exact web value
-  },
-  titleGlue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#8338EC', // Purple — exact web value
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginTop: 4,
-  },
+  // Environment badge
   envBadge: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255, 0, 110, 0.15)',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: '#FF006E',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 24,
+    borderColor: colors.violet,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
   },
   envBadgeText: {
-    color: '#e91e63',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.violet,
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  card: {
-    backgroundColor: 'rgba(26, 26, 26, 0.9)',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  // Form panel
+  formPanel: {
+    backgroundColor: colors.ink2,
+    marginTop: spacing.md,
+    borderTopWidth: 1.5,
+    borderTopColor: colors.hairline,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
   },
-  errorContainer: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+  formBand: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.ink,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
+  },
+  formBandTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.paper,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  formBandRight: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  formBody: {
+    padding: spacing.lg,
+  },
+  // Error box
+  errorBox: {
+    borderWidth: 1.5,
+    borderColor: colors.rose,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
   errorText: {
-    color: '#ef4444',
-    fontSize: 14,
-    textAlign: 'center',
+    color: colors.rose,
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  inputContainer: {
-    marginBottom: 16,
+  // Field
+  fieldGroup: {
+    marginBottom: spacing.md,
+  },
+  fieldLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 10,
-    padding: 16,
-    fontSize: 16,
-    color: '#ffffff',
+    backgroundColor: colors.ink3,
+    borderWidth: 1.5,
+    borderColor: colors.hairline,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: 15,
+    color: colors.paper,
+    // No border-radius in BA
   },
-  passwordContainer: {
+  passwordRow: {
     position: 'relative',
   },
   passwordInput: {
-    paddingRight: 64,
+    paddingRight: 72,
   },
-  passwordToggle: {
+  showHideButton: {
     position: 'absolute',
-    right: 16,
+    right: spacing.md,
     top: 0,
     bottom: 0,
     justifyContent: 'center',
   },
-  passwordToggleText: {
-    color: '#8338EC',
-    fontSize: 14,
-    fontWeight: '600',
+  showHideText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.violet,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  forgotPassword: {
+  // Forgot
+  forgotRow: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
-  forgotPasswordText: {
-    color: '#8338EC',
-    fontSize: 14,
+  forgotText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  buttonWrapper: {
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  gradientButton: {
+  // Submit button
+  submitWrapper: {},
+  submitButton: {
     paddingVertical: 16,
     alignItems: 'center',
-    borderRadius: 10,
+  },
+  submitText: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Register
+  registerRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     gap: 6,
-    marginBottom: 24,
   },
   registerText: {
-    color: '#888',
-    fontSize: 14,
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   registerLink: {
-    color: '#8338EC',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.cyan,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  footer: {
-    alignItems: 'center',
-  },
-  footerLinks: {
+  // Legal
+  legalRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
     justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.xxl,
   },
-  footerText: {
-    color: '#555',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
+  legalLink: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textSubtle,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  footerLink: {
-    color: '#8338EC',
+  legalSep: {
+    color: colors.textSubtle,
     fontSize: 12,
-    lineHeight: 18,
   },
 });

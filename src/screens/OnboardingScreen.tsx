@@ -1,8 +1,8 @@
 /**
- * FitGlue Mobile Onboarding Screen
+ * FitGlue Mobile Onboarding Screen — Brutal × Aurora
  *
- * Swipeable intro carousel that tells the FitGlue story
- * to first-time users before they reach the login screen.
+ * Swipeable intro carousel. Aurora gradient CTA, BA typography.
+ * Progress indicators are square BA-style (no pill dots).
  */
 
 import React, { useState, useRef } from 'react';
@@ -19,6 +19,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, gradients, spacing } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,25 +34,25 @@ interface OnboardingSlide {
 const SLIDES: OnboardingSlide[] = [
     {
         id: '1',
-        emoji: '🏃‍♂️',
-        title: 'Your fitness apps,\nfinally talking',
-        subtitle: 'Strava • Garmin • Fitbit • Hevy • Apple HealthKit',
+        emoji: '🏃',
+        title: 'YOUR FITNESS APPS,\nFINALLY TALKING',
+        subtitle: 'STRAVA · GARMIN · FITBIT · HEVY · HEALTHKIT',
         description:
             'FitGlue connects all your fitness platforms so your data flows where it needs to — automatically.',
     },
     {
         id: '2',
         emoji: '⚡',
-        title: 'Supercharge\nyour workouts',
-        subtitle: 'Boosters that add the missing pieces',
+        title: 'SUPERCHARGE\nYOUR WORKOUTS',
+        subtitle: 'BOOSTERS THAT ADD THE MISSING PIECES',
         description:
             'Heart rate zones, pace analysis, personal records, calorie estimates — FitGlue enriches every activity with insights your apps don\'t give you.',
     },
     {
         id: '3',
         emoji: '🔗',
-        title: 'Set it once,\nforget about it',
-        subtitle: 'Pipelines handle the rest',
+        title: 'SET IT ONCE,\nFORGET ABOUT IT',
+        subtitle: 'PIPELINES HANDLE THE REST',
         description:
             'Create a pipeline, choose your boosters, and every workout is automatically enhanced and synced across your connected apps.',
     },
@@ -94,16 +95,21 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Ele
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            {/* Skip button */}
-            <TouchableOpacity style={[styles.skipButton, { top: insets.top + 8 }]} onPress={onComplete}>
-                <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
-
-            {/* Branding */}
-            <View style={[styles.brandRow, { paddingTop: insets.top + 24 }]}>
-                <Text style={styles.brandFit}>Fit</Text>
-                <Text style={styles.brandGlue}>Glue</Text>
+            {/* Top bar */}
+            <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+                <Text style={styles.wordmark}>FITGLUE</Text>
+                <TouchableOpacity onPress={onComplete}>
+                    <Text style={styles.skipText}>SKIP →</Text>
+                </TouchableOpacity>
             </View>
+
+            {/* Aurora accent line under wordmark */}
+            <LinearGradient
+                colors={gradients.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.accentLine}
+            />
 
             {/* Slides */}
             <FlatList
@@ -118,35 +124,37 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Ele
                 style={styles.flatList}
             />
 
-            {/* Dots and CTA */}
+            {/* Footer: progress squares + CTA */}
             <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-                {/* Pagination dots */}
-                <View style={styles.dots}>
+                {/* Progress squares (BA: no pill dots, use small squares) */}
+                <View style={styles.progressRow}>
                     {SLIDES.map((_, index) => (
                         <View
                             key={index}
                             style={[
-                                styles.dot,
-                                index === currentIndex ? styles.dotActive : styles.dotInactive,
+                                styles.progressSquare,
+                                index === currentIndex
+                                    ? styles.progressSquareActive
+                                    : styles.progressSquareInactive,
                             ]}
                         />
                     ))}
                 </View>
 
-                {/* CTA Button */}
+                {/* CTA */}
                 <TouchableOpacity
-                    style={styles.ctaWrapper}
                     onPress={handleNext}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
+                    style={styles.ctaWrapper}
                 >
                     <LinearGradient
-                        colors={['#FF006E', '#8338EC']}
+                        colors={gradients.primary}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.ctaButton}
                     >
                         <Text style={styles.ctaText}>
-                            {isLastSlide ? 'GET STARTED' : 'NEXT'}
+                            {isLastSlide ? 'GET STARTED →' : 'NEXT →'}
                         </Text>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -158,104 +166,107 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps): JSX.Ele
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0d0d0d',
+        backgroundColor: colors.ink,
     },
-    skipButton: {
-        position: 'absolute',
-        right: 24,
-        zIndex: 10,
-        padding: 8,
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.md,
+        backgroundColor: colors.ink,
+        borderBottomWidth: 3,
+        borderBottomColor: colors.paper,
+    },
+    wordmark: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: -0.3,
     },
     skipText: {
-        color: '#888',
-        fontSize: 16,
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
-    brandRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginBottom: 8,
-    },
-    brandFit: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#FF006E',
-    },
-    brandGlue: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#8338EC',
+    accentLine: {
+        height: 3,
     },
     flatList: {
         flex: 1,
     },
     slide: {
         width: SCREEN_WIDTH,
-        paddingHorizontal: 32,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.xxxl,
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     slideEmoji: {
-        fontSize: 72,
-        marginBottom: 24,
+        fontSize: 56,
+        marginBottom: spacing.xl,
     },
     slideTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#ffffff',
-        textAlign: 'center',
-        lineHeight: 40,
-        marginBottom: 12,
+        fontSize: 36,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: -0.5,
+        lineHeight: 38,
+        marginBottom: spacing.md,
     },
     slideSubtitle: {
-        fontSize: 14,
-        color: '#FF006E',
-        textAlign: 'center',
-        fontWeight: '600',
-        letterSpacing: 0.5,
-        marginBottom: 20,
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.violet,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginBottom: spacing.lg,
     },
     slideDescription: {
-        fontSize: 16,
-        color: '#aaa',
-        textAlign: 'center',
-        lineHeight: 24,
-        paddingHorizontal: 8,
+        fontSize: 15,
+        color: colors.textSecondary,
+        lineHeight: 23,
     },
     footer: {
-        paddingHorizontal: 32,
-        alignItems: 'center',
-        gap: 24,
+        paddingHorizontal: spacing.lg,
+        gap: spacing.lg,
+        paddingTop: spacing.md,
+        backgroundColor: colors.ink,
+        borderTopWidth: 1.5,
+        borderTopColor: colors.hairline,
     },
-    dots: {
+    progressRow: {
         flexDirection: 'row',
-        gap: 8,
+        gap: spacing.xs,
     },
-    dot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    // BA: square progress indicators (no pills/dots)
+    progressSquare: {
+        height: 4,
     },
-    dotActive: {
-        backgroundColor: '#FF006E',
+    progressSquareActive: {
         width: 24,
+        backgroundColor: colors.paper,
     },
-    dotInactive: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    progressSquareInactive: {
+        width: 8,
+        backgroundColor: colors.textSubtle,
     },
-    ctaWrapper: {
-        width: '100%',
-        borderRadius: 12,
-        overflow: 'hidden',
-    },
+    ctaWrapper: {},
     ctaButton: {
-        paddingVertical: 18,
+        paddingVertical: 16,
         alignItems: 'center',
-        borderRadius: 12,
     },
     ctaText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-        letterSpacing: 1.5,
+        color: colors.ink,
+        fontSize: 14,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
     },
 });
