@@ -1,7 +1,8 @@
 /**
- * FitGlue Mobile Settings Screen
+ * FitGlue Mobile Settings Screen — Brutal × Aurora
  *
- * User preferences, account info, and app settings.
+ * Section headers styled as BA bands. Cards are flat ink-2 panels.
+ * No border-radius except status dots.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -28,7 +29,7 @@ import { environment, apiConfig } from '../config/environment';
 import * as StorageService from '../services/StorageService';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { formatRelativeTime } from '../utils/formatters';
-import { colors, spacing, radii, typography, gradients } from '../theme';
+import { colors, spacing, gradients } from '../theme';
 import {
     isBackgroundSyncRegistered,
     registerBackgroundSync,
@@ -48,30 +49,24 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
     const [isSyncing, setIsSyncing] = useState(false);
     const [bgSyncRegistered, setBgSyncRegistered] = useState(false);
 
-    // Load settings on mount
     useEffect(() => {
         (async () => {
             const enabled = await StorageService.isSyncEnabled();
             setSyncEnabled(enabled);
-
             const date = await StorageService.getLastSyncDate();
             setLastSync(date);
-
             const registered = await isBackgroundSyncRegistered();
             setBgSyncRegistered(registered);
         })();
     }, []);
 
-    // Refresh data when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             (async () => {
                 const date = await StorageService.getLastSyncDate();
                 setLastSync(date);
-
                 const enabled = await StorageService.isSyncEnabled();
                 setSyncEnabled(enabled);
-
                 const registered = await isBackgroundSyncRegistered();
                 setBgSyncRegistered(registered);
             })();
@@ -82,7 +77,6 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setSyncEnabled(value);
         await StorageService.setSyncEnabled(value);
-
         if (value) {
             await registerBackgroundSync();
             setBgSyncRegistered(true);
@@ -155,55 +149,54 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+            {/* Top bar */}
+            <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
                 <TouchableOpacity
                     onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         navigation.goBack();
                     }}
-                    style={styles.backButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                    <Text style={styles.backText}>← Back</Text>
+                    <Text style={styles.backText}>← BACK</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Settings</Text>
-                <View style={styles.backButton} />
+                <Text style={styles.topBarTitle}>SETTINGS</Text>
+                <View style={styles.topBarRight} />
             </View>
 
-            <View style={styles.divider} />
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-            >
-                {/* Sync Section */}
-                <Text style={styles.sectionTitle}>SYNC</Text>
-                <View style={styles.card}>
+                {/* ── SYNC SECTION ── */}
+                <SectionBand label="🔄 SYNC" right="BACKGROUND" />
+                <View style={styles.panel}>
                     <View style={styles.settingRow}>
                         <View style={styles.settingInfo}>
                             <Text style={styles.settingLabel}>Background Sync</Text>
-                            <Text style={styles.settingDescription}>
-                                Automatically sync {platformName} data
+                            <Text style={styles.settingDesc}>
+                                Auto-sync {platformName} data
                             </Text>
                         </View>
                         <Switch
                             value={syncEnabled}
                             onValueChange={handleToggleSync}
-                            trackColor={{ false: '#333', true: 'rgba(255, 0, 110, 0.4)' }}
-                            thumbColor={syncEnabled ? '#FF006E' : '#666'}
+                            trackColor={{
+                                false: colors.trackInactive,
+                                true: 'rgba(255,61,166,0.4)',
+                            }}
+                            thumbColor={syncEnabled ? colors.pink : colors.thumbInactive}
                         />
                     </View>
 
-                    <View style={styles.settingDivider} />
+                    <View style={styles.hairline} />
 
                     <View style={styles.settingRow}>
                         <View style={styles.settingInfo}>
                             <Text style={styles.settingLabel}>Last Sync</Text>
-                            <Text style={styles.settingDescription}>{formatRelativeTime(lastSync)}</Text>
+                            <Text style={styles.settingDesc}>{formatRelativeTime(lastSync)}</Text>
                         </View>
                         <View style={[
-                            styles.statusIndicator,
-                            bgSyncRegistered ? styles.statusGreen : styles.statusAmber,
+                            styles.statusDot,
+                            bgSyncRegistered ? styles.dotCyan : styles.dotAmber,
                         ]} />
                     </View>
 
@@ -211,182 +204,239 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
                         style={[styles.syncButton, isSyncing && styles.buttonDisabled]}
                         onPress={handleManualSync}
                         disabled={isSyncing}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                     >
-                        <Text style={styles.syncButtonText}>
-                            {isSyncing ? 'Syncing…' : 'Sync Now'}
-                        </Text>
+                        <LinearGradient
+                            colors={gradients.primary}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.gradientButton}
+                        >
+                            <Text style={styles.syncButtonText}>
+                                {isSyncing ? 'SYNCING…' : 'SYNC NOW →'}
+                            </Text>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
 
-                {/* Account Section */}
-                <Text style={styles.sectionTitle}>ACCOUNT</Text>
-                <View style={styles.card}>
+                {/* ── ACCOUNT SECTION ── */}
+                <SectionBand label="👤 ACCOUNT" right="YOUR PROFILE" />
+                <View style={styles.panel}>
                     <View style={styles.settingRow}>
                         <View style={styles.settingInfo}>
                             <Text style={styles.settingLabel}>Email</Text>
-                            <Text style={styles.settingDescription}>{user?.email || 'Unknown'}</Text>
+                            <Text style={styles.settingDesc}>{user?.email || 'Unknown'}</Text>
                         </View>
                     </View>
 
-                    <View style={styles.settingDivider} />
+                    <View style={styles.hairline} />
 
                     <TouchableOpacity style={styles.linkRow} onPress={handleOpenDashboard}>
-                        <Text style={styles.linkText}>Open FitGlue Dashboard</Text>
+                        <Text style={styles.linkText}>OPEN FITGLUE DASHBOARD</Text>
                         <Text style={styles.linkArrow}>→</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* About Section */}
-                <Text style={styles.sectionTitle}>ABOUT</Text>
-                <View style={styles.card}>
+                {/* ── ABOUT SECTION ── */}
+                <SectionBand label="ℹ ABOUT" right="APP INFO" />
+                <View style={styles.panel}>
                     <View style={styles.settingRow}>
-                        <Text style={styles.settingLabel}>Version</Text>
+                        <Text style={styles.settingLabel}>VERSION</Text>
                         <Text style={styles.settingValue}>{appVersion}</Text>
                     </View>
 
-                    <View style={styles.settingDivider} />
+                    <View style={styles.hairline} />
 
                     <View style={styles.settingRow}>
-                        <Text style={styles.settingLabel}>Environment</Text>
-                        <Text style={styles.settingValue}>{environment}</Text>
+                        <Text style={styles.settingLabel}>ENVIRONMENT</Text>
+                        <Text style={styles.settingValue}>{environment.toUpperCase()}</Text>
                     </View>
 
-                    <View style={styles.settingDivider} />
+                    <View style={styles.hairline} />
 
                     <TouchableOpacity style={styles.linkRow} onPress={handleOpenPrivacy}>
-                        <Text style={styles.linkText}>Privacy Policy</Text>
+                        <Text style={styles.linkText}>PRIVACY POLICY</Text>
                         <Text style={styles.linkArrow}>→</Text>
                     </TouchableOpacity>
 
-                    <View style={styles.settingDivider} />
+                    <View style={styles.hairline} />
 
                     <TouchableOpacity style={styles.linkRow} onPress={handleOpenTerms}>
-                        <Text style={styles.linkText}>Terms of Service</Text>
+                        <Text style={styles.linkText}>TERMS OF SERVICE</Text>
                         <Text style={styles.linkArrow}>→</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Sign Out */}
+                {/* ── SIGN OUT ── */}
+                <SectionBand label="⚠ DANGER ZONE" right="" />
                 <TouchableOpacity
                     style={styles.signOutButton}
                     onPress={handleSignOut}
                     activeOpacity={0.8}
                 >
-                    <Text style={styles.signOutText}>Sign Out</Text>
+                    <Text style={styles.signOutText}>SIGN OUT</Text>
                 </TouchableOpacity>
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <View style={styles.titleRow}>
-                        <Text style={styles.titleFit}>Fit</Text>
-                        <Text style={styles.titleGlue}>Glue</Text>
-                    </View>
-                    <Text style={styles.footerText}>
-                        Your fitness apps, finally talking.
-                    </Text>
+                    <Text style={styles.footerWordmark}>FITGLUE</Text>
+                    <Text style={styles.footerSub}>YOUR FITNESS APPS, FINALLY TALKING.</Text>
                 </View>
             </ScrollView>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    header: {
+/* ─── Section Band ──────────────────────────────────────────── */
+
+function SectionBand({ label, right }: { label: string; right: string }): JSX.Element {
+    return (
+        <View style={sectionBandStyles.band}>
+            <Text style={sectionBandStyles.label}>{label}</Text>
+            {right ? <Text style={sectionBandStyles.right}>{right}</Text> : null}
+        </View>
+    );
+}
+
+const sectionBandStyles = StyleSheet.create({
+    band: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: spacing.xl,
-        paddingBottom: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        backgroundColor: colors.ink,
+        borderTopWidth: 1.5,
+        borderTopColor: colors.hairline,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
+        marginTop: spacing.lg,
     },
-    backButton: {
-        width: 60,
+    label: {
+        fontSize: 13,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    right: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+});
+
+/* ─── Screen Styles ─────────────────────────────────────────── */
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.ink,
+    },
+    topBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.md,
+        backgroundColor: colors.ink,
+        borderBottomWidth: 3,
+        borderBottomColor: colors.paper,
     },
     backText: {
-        color: colors.primary,
-        fontSize: spacing.lg,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: '700',
+        color: colors.paper,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
-    headerTitle: {
-        ...typography.titleSm,
+    topBarTitle: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
-    divider: {
-        height: 1,
-        backgroundColor: colors.divider,
-        marginHorizontal: spacing.xl,
+    topBarRight: {
+        width: 60,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: spacing.xl,
-        paddingBottom: 40,
+        paddingBottom: 48,
     },
-    sectionTitle: {
-        ...typography.label,
-        marginBottom: spacing.sm,
-        marginTop: spacing.sm,
-    },
-    card: {
-        backgroundColor: colors.surface,
-        borderRadius: radii.xxl,
-        padding: spacing.lg,
-        marginBottom: spacing.xxl,
-        borderWidth: 1,
-        borderColor: colors.surfaceBorder,
+    // Flat panel (no border-radius in BA)
+    panel: {
+        backgroundColor: colors.ink2,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
     },
     settingRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
     },
     settingInfo: {
         flex: 1,
         marginRight: spacing.md,
     },
     settingLabel: {
-        ...typography.bodySmall,
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
     },
-    settingDescription: {
-        ...typography.caption,
+    settingDesc: {
+        fontSize: 11,
+        color: colors.textMuted,
+        fontFamily: 'monospace',
         marginTop: 2,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     settingValue: {
-        fontSize: 15,
-        color: colors.textMuted,
+        fontSize: 11,
+        color: colors.textSecondary,
+        fontFamily: 'monospace',
+        textTransform: 'uppercase',
     },
-    settingDivider: {
+    hairline: {
         height: 1,
-        backgroundColor: colors.dividerSubtle,
-        marginVertical: spacing.sm,
+        backgroundColor: colors.hairline,
     },
-    statusIndicator: {
+    // Status dot — round is allowed for dots
+    statusDot: {
         width: 8,
         height: 8,
-        borderRadius: radii.sm,
+        borderRadius: 4,
     },
-    statusGreen: {
-        backgroundColor: colors.success,
+    dotCyan: {
+        backgroundColor: colors.cyan,
     },
-    statusAmber: {
+    dotAmber: {
         backgroundColor: colors.warning,
     },
     syncButton: {
-        borderWidth: 1,
-        borderColor: colors.primary,
-        paddingVertical: spacing.md,
-        borderRadius: radii.lg,
+        marginVertical: spacing.md,
+    },
+    gradientButton: {
+        paddingVertical: 13,
         alignItems: 'center',
-        marginTop: spacing.md,
     },
     syncButtonText: {
-        color: colors.primary,
-        ...typography.buttonSmall,
+        color: colors.ink,
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
     buttonDisabled: {
         opacity: 0.5,
@@ -395,50 +445,52 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.md,
     },
     linkText: {
-        ...typography.bodySmall,
-        color: colors.primary,
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     linkArrow: {
-        fontSize: 16,
-        color: colors.primary,
+        fontSize: 14,
+        color: colors.textMuted,
     },
     signOutButton: {
-        backgroundColor: colors.errorSurface,
-        borderWidth: 1,
-        borderColor: colors.errorBorder,
-        borderRadius: radii.xl,
+        marginHorizontal: spacing.lg,
+        marginTop: spacing.md,
+        borderWidth: 1.5,
+        borderColor: colors.rose,
         paddingVertical: spacing.lg,
         alignItems: 'center',
-        marginBottom: spacing.xxxl,
     },
     signOutText: {
-        color: colors.error,
-        fontSize: 16,
-        fontWeight: '600',
+        color: colors.rose,
+        fontSize: 12,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
     },
     footer: {
         alignItems: 'center',
-        paddingBottom: spacing.xl,
+        paddingVertical: spacing.xxl,
     },
-    titleRow: {
-        flexDirection: 'row',
-        marginBottom: spacing.xs,
+    footerWordmark: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: -0.3,
+        marginBottom: 4,
     },
-    titleFit: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.primary,
-    },
-    titleGlue: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.secondary,
-    },
-    footerText: {
-        fontSize: 12,
+    footerSub: {
+        fontSize: 9,
+        fontWeight: '700',
         color: colors.textSubtle,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
 });
