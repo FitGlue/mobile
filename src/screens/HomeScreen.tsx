@@ -1,8 +1,8 @@
 /**
- * FitGlue Mobile Home Screen
+ * FitGlue Mobile Home Screen — Brutal × Aurora
  *
- * Main dashboard for authenticated users.
- * Orchestrates health sync status, recent workouts, and dashboard link.
+ * Dashboard: greeting hero, 2×2 stat grid, sync status, recent workouts.
+ * Matches the BA mobile dashboard archetype.
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -27,7 +27,7 @@ import { triggerManualSync } from '../services/BackgroundSyncTask';
 import { submitActivities, fetchRemoteSyncedIds } from '../services/SyncService';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { formatRelativeTime } from '../utils/formatters';
-import { colors, spacing, radii } from '../theme';
+import { colors, spacing } from '../theme';
 
 // Components
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -140,11 +140,8 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
       setVisibleCount(10);
       setLastSync(new Date());
 
-      // Cache workouts for instant display on next mount
       StorageService.setCachedWorkouts(data);
 
-      // Seed synced IDs from backend if local storage is empty
-      // (handles reinstall / storage clear)
       const localIds = await StorageService.getSyncedIds();
       if (localIds.size === 0 && data.length > 0) {
         try {
@@ -159,7 +156,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
             }
           }
         } catch {
-          // Non-fatal — local-only badges still work
+          // Non-fatal
         }
       }
     } catch (err) {
@@ -195,6 +192,10 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
 
   const userInitial = user?.email?.charAt(0)?.toUpperCase() || '?';
 
+  // Derive greeting based on time of day
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'GOOD MORNING' : hour < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING';
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -205,7 +206,7 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
         topInset={insets.top}
       />
 
-      {/* Environment Badge */}
+      {/* Environment badge */}
       {environment !== 'production' && (
         <View style={styles.envBadge}>
           <Text style={styles.envBadgeText}>{environment.toUpperCase()}</Text>
@@ -219,19 +220,45 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors.primary}
+            tintColor={colors.violet}
           />
         }
       >
-        {/* Dashboard Title */}
-        <Text style={styles.dashboardTitle}>Dashboard</Text>
-        <Text style={styles.dashboardSubtitle}>Here's what's happening with your fitness data.</Text>
+        {/* Hero greeting */}
+        <View style={styles.hero}>
+          <Text style={styles.heroWhen}>
+            {new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
+          </Text>
+          <Text style={styles.heroTitle}>{greeting} —{'\n'}WELCOME BACK.</Text>
+        </View>
 
-        {/* Last Sync Status */}
-        <View style={styles.syncBanner}>
-          <View style={[styles.syncDot, lastSync ? styles.dotGreen : styles.dotAmber]} />
-          <Text style={styles.syncBannerText}>
-            Last sync: {formatRelativeTime(lastSync)}
+        {/* 2×2 stat grid */}
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCell, styles.statCellRight, styles.statCellBottom]}>
+            <Text style={styles.statNumber}>{workouts.length}</Text>
+            <Text style={styles.statLabel}>WORKOUTS</Text>
+          </View>
+          <View style={[styles.statCell, styles.statCellBottom]}>
+            <Text style={styles.statNumber}>{syncedIds.size}</Text>
+            <Text style={styles.statLabel}>SYNCED</Text>
+          </View>
+          <View style={[styles.statCell, styles.statCellRight, styles.statCellGradient]}>
+            <Text style={styles.statNumberGradient}>
+              {isInitialized ? 'ON' : 'OFF'}
+            </Text>
+            <Text style={styles.statLabel}>HEALTH</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={styles.statNumber}>{formatRelativeTime(lastSync) === 'Never' ? '—' : '✓'}</Text>
+            <Text style={styles.statLabel}>LAST SYNC</Text>
+          </View>
+        </View>
+
+        {/* Sync status line */}
+        <View style={styles.syncLine}>
+          <View style={[styles.syncDot, lastSync ? styles.dotCyan : styles.dotAmber]} />
+          <Text style={styles.syncLineText}>
+            {formatRelativeTime(lastSync)}
           </Text>
         </View>
 
@@ -271,15 +298,15 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
           onShowMore={() => setVisibleCount(prev => prev + 10)}
         />
 
-        {/* Dashboard Link */}
+        {/* Dashboard CTA */}
         <DashboardLink />
 
-        {/* Info Footer */}
+        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             {isInitialized
-              ? '✨ Your workouts are being synced and enhanced automatically.'
-              : '📱 Connect a health source above to get started.'}
+              ? '✨ YOUR WORKOUTS ARE SYNCED AND ENHANCED AUTOMATICALLY.'
+              : '📱 CONNECT A HEALTH SOURCE ABOVE TO GET STARTED.'}
           </Text>
         </View>
       </ScrollView>
@@ -290,74 +317,146 @@ export function HomeScreen({ navigation }: HomeScreenProps): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   envBadge: {
     alignSelf: 'center',
-    backgroundColor: colors.primarySurface,
+    backgroundColor: 'rgba(139,92,246,0.15)',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.violet,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radii.xl,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   envBadgeText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.violet,
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.xl,
     paddingBottom: 40,
   },
-  dashboardTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
+  // Hero greeting
+  hero: {
+    padding: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.ink2,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
   },
-  dashboardSubtitle: {
-    fontSize: 15,
+  heroWhen: {
+    fontSize: 9,
+    fontWeight: '700',
     color: colors.textMuted,
-    marginBottom: spacing.md,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  syncBanner: {
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: colors.paper,
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    lineHeight: 34,
+  },
+  // 2×2 stat grid
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.ink2,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
+  },
+  statCell: {
+    width: '50%',
+    padding: spacing.lg,
+  },
+  statCellRight: {
+    borderRightWidth: 1.5,
+    borderRightColor: colors.hairline,
+  },
+  statCellBottom: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
+  },
+  statCellGradient: {
+    // The gradient number cell
+  },
+  statNumber: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: colors.paper,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+  },
+  statNumberGradient: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: colors.cyan,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  // Sync status line
+  syncLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: radii.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.ink,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.hairline,
     gap: spacing.sm,
   },
   syncDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  dotGreen: {
-    backgroundColor: colors.success,
+  dotCyan: {
+    backgroundColor: colors.cyan,
   },
   dotAmber: {
     backgroundColor: colors.warning,
   },
-  syncBannerText: {
-    fontSize: 13,
-    color: colors.textSecondary,
+  syncLineText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
+  // Footer
   footer: {
     alignItems: 'center',
-    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 9,
+    fontWeight: '700',
     color: colors.textSubtle,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
     textAlign: 'center',
-    marginBottom: spacing.xs,
   },
 });

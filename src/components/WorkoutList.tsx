@@ -1,9 +1,11 @@
 /**
- * Workout List Component
+ * Workout List Component — Brutal × Aurora
  *
  * Displays device workouts with per-item sync buttons,
- * sync status badges, data-type pills, and show-more pagination.
+ * sync status indicators, data-type pills, and show-more pagination.
  * Tapping a workout navigates to the full WorkoutDetail screen.
+ *
+ * Design: stacked run rows with hairline dividers (BA dashboard pattern).
  */
 
 import React from 'react';
@@ -19,7 +21,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, radii } from '../theme';
+import { colors, spacing } from '../theme';
 import { WorkoutData } from '../hooks/useHealth';
 import { formatDuration, formatDistance, pluralise } from '../utils/formatters';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -64,22 +66,25 @@ export function WorkoutList({
     };
 
     return (
-        <View style={styles.card}>
-            <Text style={styles.cardTitle}>📱 Device Workouts</Text>
-            <Text style={styles.cardDescription}>
-                {workouts.length} workout{pluralise(workouts.length, '')} found on your device via {platformName}.{' '}
-                Tap any workout to view details, or hit "Sync →" to send it to FitGlue.
-            </Text>
+        <View style={styles.section}>
+            {/* Band header */}
+            <View style={styles.bandHeader}>
+                <Text style={styles.bandTitle}>📱 DEVICE WORKOUTS</Text>
+                <Text style={styles.bandRight}>
+                    {workouts.length} VIA {platformName.toUpperCase()}
+                </Text>
+            </View>
 
-            {/* Sync context */}
+            {/* Synced count badge */}
             {syncedIds.size > 0 && (
-                <View style={styles.syncContextBanner}>
-                    <Text style={styles.syncContextText}>
-                        ✓ {syncedIds.size} workout{pluralise(syncedIds.size, '')} synced to FitGlue
+                <View style={styles.syncBadge}>
+                    <Text style={styles.syncBadgeText}>
+                        ✓ {syncedIds.size} WORKOUT{pluralise(syncedIds.size, '')} SYNCED TO FITGLUE
                     </Text>
                 </View>
             )}
 
+            {/* Run rows */}
             {workouts.slice(0, visibleCount).map((workout, index) => {
                 const isSynced = syncedIds.has(workout.id);
                 const isSyncing = syncingId === workout.id;
@@ -90,39 +95,45 @@ export function WorkoutList({
                 return (
                     <TouchableOpacity
                         key={workout.id || index}
-                        style={styles.workoutItem}
+                        style={styles.runRow}
                         activeOpacity={0.7}
                         onPress={() => openDetail(workout)}
                     >
-                        <View style={styles.workoutHeader}>
-                            <Text style={styles.workoutType}>{workout.type}</Text>
-                            <Text style={styles.workoutDate}>
-                                {workout.startDate.toLocaleDateString()}
+                        {/* Top row: type tag + title + time */}
+                        <View style={styles.runTop}>
+                            <View style={[styles.typeTag, isSynced ? styles.typeTagInk : styles.typeTagGradientBg]}>
+                                <Text style={styles.typeTagText}>{workout.type.toUpperCase()}</Text>
+                            </View>
+                            <Text style={styles.runTitle} numberOfLines={1}>
+                                {workout.startDate.toLocaleDateString(undefined, {
+                                    weekday: 'short', day: 'numeric', month: 'short',
+                                })}
+                            </Text>
+                            <Text style={styles.runTime}>
+                                {workout.startDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </Text>
                         </View>
-                        <View style={styles.workoutRow}>
-                            <View style={styles.workoutStats}>
-                                <Text style={styles.workoutStat}>
-                                    ⏱️ {formatDuration(workout.duration)}
-                                </Text>
-                                {workout.distance && (
-                                    <Text style={styles.workoutStat}>
-                                        📍 {formatDistance(workout.distance)}
-                                    </Text>
+
+                        {/* Bottom row: stats + status */}
+                        <View style={styles.runBot}>
+                            <View style={styles.runStats}>
+                                <Text style={styles.runStat}>⏱ {formatDuration(workout.duration)}</Text>
+                                {workout.distance != null && workout.distance > 0 && (
+                                    <Text style={styles.runStat}>📍 {formatDistance(workout.distance)}</Text>
                                 )}
-                                {workout.calories && (
-                                    <Text style={styles.workoutStat}>
-                                        🔥 {workout.calories} cal
-                                    </Text>
+                                {workout.calories != null && workout.calories > 0 && (
+                                    <Text style={styles.runStat}>🔥 {workout.calories} CAL</Text>
                                 )}
                             </View>
+
+                            {/* Sync control */}
                             {isSynced ? (
-                                <View style={styles.syncedBadge}>
-                                    <Text style={styles.syncedBadgeText}>✓ Synced</Text>
+                                <View style={styles.syncedPill}>
+                                    <Text style={styles.syncedPillText}>✓ SYNCED</Text>
                                 </View>
                             ) : (
                                 <TouchableOpacity
-                                    style={[styles.syncWorkoutButton, isSyncing && styles.buttonDisabled]}
+                                    style={[styles.syncButton, isSyncing && styles.buttonDisabled]}
                                     onPress={(e) => {
                                         e.stopPropagation();
                                         onSyncWorkout(workout);
@@ -131,29 +142,30 @@ export function WorkoutList({
                                     activeOpacity={0.7}
                                 >
                                     {isSyncing ? (
-                                        <ActivityIndicator size="small" color={colors.primary} />
+                                        <ActivityIndicator size="small" color={colors.violet} />
                                     ) : (
-                                        <Text style={styles.syncWorkoutButtonText}>Sync →</Text>
+                                        <Text style={styles.syncButtonText}>SYNC →</Text>
                                     )}
                                 </TouchableOpacity>
                             )}
                         </View>
 
-                        {/* Data pills */}
+                        {/* Data type pills */}
                         {(hasHr || hasRoute || hasCal) && (
                             <View style={styles.pillRow}>
-                                {hasHr && <MiniPill emoji="❤️" label="HR" />}
-                                {hasRoute && <MiniPill emoji="📍" label="GPS" />}
-                                {hasCal && <MiniPill emoji="🔥" label="Cal" />}
+                                {hasHr && <MiniPill label="❤ HR" />}
+                                {hasRoute && <MiniPill label="📍 GPS" />}
+                                {hasCal && <MiniPill label="🔥 CAL" />}
                             </View>
                         )}
                     </TouchableOpacity>
                 );
             })}
 
+            {/* Show more */}
             {workouts.length > visibleCount && (
                 <TouchableOpacity
-                    style={styles.showMoreButton}
+                    style={styles.showMoreRow}
                     onPress={() => {
                         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                         onShowMore();
@@ -161,7 +173,7 @@ export function WorkoutList({
                     activeOpacity={0.7}
                 >
                     <Text style={styles.showMoreText}>
-                        Show {Math.min(10, workouts.length - visibleCount)} more ({workouts.length - visibleCount} remaining)
+                        LOAD {Math.min(10, workouts.length - visibleCount)} MORE ↓ ({workouts.length - visibleCount} REMAINING)
                     </Text>
                 </TouchableOpacity>
             )}
@@ -171,145 +183,185 @@ export function WorkoutList({
 
 /* ─── Mini Pill ─────────────────────────────────────────────── */
 
-function MiniPill({ emoji, label }: { emoji: string; label: string }): JSX.Element {
+function MiniPill({ label }: { label: string }): JSX.Element {
     return (
         <View style={styles.pill}>
-            <Text style={styles.pillEmoji}>{emoji}</Text>
             <Text style={styles.pillLabel}>{label}</Text>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    card: {
-        backgroundColor: colors.surface,
-        borderRadius: radii.xxl,
-        padding: spacing.xl,
+    section: {
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.surfaceBorder,
+        backgroundColor: colors.ink2,
     },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.textPrimary,
-        marginBottom: 6,
-    },
-    cardDescription: {
-        fontSize: 14,
-        color: colors.textMuted,
-        marginBottom: spacing.lg,
-        lineHeight: 20,
-    },
-    syncContextBanner: {
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-        borderRadius: radii.md,
-        paddingHorizontal: spacing.md,
+    bandHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
-        marginBottom: spacing.sm,
+        backgroundColor: colors.ink,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
     },
-    syncContextText: {
+    bandTitle: {
+        fontSize: 13,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    bandRight: {
+        fontSize: 9,
+        fontWeight: '700',
         color: colors.textMuted,
-        fontSize: 12,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
-    workoutItem: {
-        paddingVertical: spacing.md,
+    syncBadge: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.xs,
+        backgroundColor: 'rgba(34,211,238,0.08)',
         borderBottomWidth: 1,
-        borderBottomColor: colors.dividerSubtle,
+        borderBottomColor: colors.hairline,
     },
-    workoutHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 6,
+    syncBadgeText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.cyan,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
-    workoutType: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: colors.primary,
+    runRow: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
     },
-    workoutDate: {
-        fontSize: 13,
-        color: colors.textMuted,
-    },
-    workoutRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    workoutStats: {
-        flexDirection: 'row',
-        gap: spacing.lg,
-    },
-    workoutStat: {
-        fontSize: 13,
-        color: '#ccc',
-    },
-    pillRow: {
-        flexDirection: 'row',
-        gap: 6,
-        marginTop: 6,
-    },
-    pill: {
+    runTop: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 3,
-        backgroundColor: colors.pillBackground,
-        borderWidth: 1,
-        borderColor: colors.pillBorder,
-        borderRadius: radii.round,
-        paddingHorizontal: 8,
+        gap: spacing.sm,
+        marginBottom: spacing.xs,
+    },
+    typeTag: {
+        paddingHorizontal: 6,
         paddingVertical: 2,
     },
-    pillEmoji: {
-        fontSize: 10,
+    typeTagGradientBg: {
+        backgroundColor: colors.violet,
     },
-    pillLabel: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: colors.textMuted,
+    typeTagInk: {
+        backgroundColor: colors.ink3,
+    },
+    typeTagText: {
+        fontSize: 8,
+        fontWeight: '700',
+        color: colors.paper,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
         textTransform: 'uppercase',
-        letterSpacing: 0.3,
     },
-    showMoreButton: {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
-        borderRadius: radii.lg,
-        paddingVertical: spacing.md,
-        alignItems: 'center',
-        marginTop: spacing.md,
-    },
-    showMoreText: {
-        color: colors.textSecondary,
+    runTitle: {
+        flex: 1,
         fontSize: 13,
-        fontWeight: '500',
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: -0.2,
     },
-    syncWorkoutButton: {
-        backgroundColor: colors.primarySurface,
-        borderWidth: 1,
-        borderColor: colors.primary,
-        borderRadius: radii.md,
-        paddingHorizontal: spacing.md,
-        paddingVertical: 6,
-        minWidth: 70,
+    runTime: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+    },
+    runBot: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
-    syncWorkoutButtonText: {
-        color: colors.primary,
-        fontSize: 13,
-        fontWeight: '600',
+    runStats: {
+        flexDirection: 'row',
+        gap: spacing.md,
+        flex: 1,
+    },
+    runStat: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    syncedPill: {
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+    },
+    syncedPillText: {
+        fontSize: 8,
+        fontWeight: '700',
+        color: colors.cyan,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+    },
+    syncButton: {
+        borderWidth: 1,
+        borderColor: colors.violet,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+        minWidth: 64,
+        alignItems: 'center',
+    },
+    syncButtonText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.violet,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
     buttonDisabled: {
         opacity: 0.5,
     },
-    syncedBadge: {
-        backgroundColor: 'rgba(34, 197, 94, 0.12)',
-        borderRadius: radii.md,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+    pillRow: {
+        flexDirection: 'row',
+        gap: 4,
+        marginTop: 6,
     },
-    syncedBadgeText: {
-        color: colors.success,
-        fontSize: 12,
-        fontWeight: '600',
+    pill: {
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        backgroundColor: colors.ink3,
+    },
+    pillLabel: {
+        fontSize: 8,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+    showMoreRow: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        alignItems: 'center',
+        borderTopWidth: 1.5,
+        borderTopColor: colors.hairline,
+    },
+    showMoreText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.paper,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
 });

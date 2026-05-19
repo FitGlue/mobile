@@ -40,7 +40,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function LoadingScreen(): JSX.Element {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#FF006E" />
+      <ActivityIndicator size="large" color="#FF3DA6" />
     </View>
   );
 }
@@ -76,7 +76,7 @@ export function AppNavigator(): JSX.Element {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#0d0d0d' },
+          contentStyle: { backgroundColor: '#0A0A0F' },
           animation: 'fade',
         }}
       >
@@ -114,6 +114,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0d0d0d',
+    backgroundColor: '#0A0A0F',
   },
 });

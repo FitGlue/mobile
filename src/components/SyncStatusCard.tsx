@@ -1,5 +1,5 @@
 /**
- * Sync Status Card Component
+ * Sync Status Card Component — Brutal × Aurora
  *
  * Shows sync state, sync result banners, Sync Now button,
  * and the Browse Device Workouts button.
@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { colors, gradients, spacing, radii } from '../theme';
+import { colors, gradients, spacing } from '../theme';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -44,168 +44,214 @@ export function SyncStatusCard({
 }: SyncStatusCardProps): JSX.Element {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>📡 Sync Status</Text>
-
-            <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>Last Sync</Text>
-                <Text style={styles.statusValue}>
-                    {lastSync ? lastSync.toLocaleString() : 'Never'}
+            {/* Band header */}
+            <View style={styles.bandHeader}>
+                <Text style={styles.bandTitle}>📡 SYNC STATUS</Text>
+                <Text style={styles.bandRight}>
+                    {syncStatus === 'syncing' ? 'RUNNING' : syncStatus === 'success' ? 'OK' : syncStatus === 'error' ? 'FAILED' : 'IDLE'}
                 </Text>
             </View>
 
-            {/* Sync result banner */}
-            {syncStatus === 'syncing' && (
-                <View style={styles.syncResultBanner}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={styles.syncResultText}>Syncing workouts to FitGlue…</Text>
-                </View>
-            )}
-            {syncStatus === 'success' && lastSyncResult && (
-                <View style={[styles.syncResultBanner, styles.syncResultSuccess]}>
-                    <Text style={styles.successIcon}>✓</Text>
-                    <Text style={styles.syncResultTextSuccess}>
-                        Synced! {lastSyncResult.processedCount} workout{lastSyncResult.processedCount !== 1 ? 's' : ''} processed.
+            <View style={styles.body}>
+                <View style={styles.statusRow}>
+                    <Text style={styles.statusLabel}>LAST SYNC</Text>
+                    <Text style={styles.statusValue}>
+                        {lastSync ? lastSync.toLocaleString() : 'NEVER'}
                     </Text>
                 </View>
-            )}
-            {syncStatus === 'error' && lastSyncResult && (
-                <View style={[styles.syncResultBanner, styles.syncResultError]}>
-                    <Text style={styles.syncResultTextError}>
-                        {lastSyncResult.error || 'Sync failed'}
-                    </Text>
-                </View>
-            )}
 
-            {/* Sync Now button */}
-            <TouchableOpacity
-                style={[styles.buttonWrapper, syncStatus === 'syncing' && styles.buttonDisabled]}
-                onPress={onSyncNow}
-                disabled={syncStatus === 'syncing'}
-                activeOpacity={0.8}
-            >
-                <LinearGradient
-                    colors={gradients.primary}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gradientButton}
+                {/* Sync result banner */}
+                {syncStatus === 'syncing' && (
+                    <View style={styles.bannerRunning}>
+                        <ActivityIndicator size="small" color={colors.violet} />
+                        <Text style={styles.bannerTextRunning}>SYNCING WORKOUTS TO FITGLUE…</Text>
+                    </View>
+                )}
+                {syncStatus === 'success' && lastSyncResult && (
+                    <View style={styles.bannerSuccess}>
+                        <Text style={styles.bannerTextSuccess}>
+                            ✓ SYNCED — {lastSyncResult.processedCount} WORKOUT{lastSyncResult.processedCount !== 1 ? 'S' : ''} PROCESSED
+                        </Text>
+                    </View>
+                )}
+                {syncStatus === 'error' && lastSyncResult && (
+                    <View style={styles.bannerError}>
+                        <Text style={styles.bannerTextError}>
+                            {(lastSyncResult.error || 'SYNC FAILED').toUpperCase()}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Sync Now button */}
+                <TouchableOpacity
+                    style={[styles.buttonWrapper, syncStatus === 'syncing' && styles.buttonDisabled]}
+                    onPress={onSyncNow}
+                    disabled={syncStatus === 'syncing'}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.buttonText}>
-                        {syncStatus === 'syncing' ? 'Syncing…' : 'Sync Now'}
-                    </Text>
-                </LinearGradient>
-            </TouchableOpacity>
+                    <LinearGradient
+                        colors={gradients.primary}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.gradientButton}
+                    >
+                        <Text style={styles.buttonText}>
+                            {syncStatus === 'syncing' ? 'SYNCING…' : 'SYNC NOW →'}
+                        </Text>
+                    </LinearGradient>
+                </TouchableOpacity>
 
-            {/* Fetch workouts locally */}
-            <TouchableOpacity
-                style={[styles.outlineButton, loading && styles.buttonDisabled]}
-                onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    onFetchWorkouts();
-                }}
-                disabled={loading}
-            >
-                <Text style={styles.outlineButtonText}>
-                    {loading ? 'Fetching…' : 'Browse Device Workouts (Last 30 Days)'}
-                </Text>
-            </TouchableOpacity>
+                {/* Browse device workouts */}
+                <TouchableOpacity
+                    style={[styles.outlineButton, loading && styles.buttonDisabled]}
+                    onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        onFetchWorkouts();
+                    }}
+                    disabled={loading}
+                >
+                    <Text style={styles.outlineButtonText}>
+                        {loading ? 'FETCHING…' : 'BROWSE DEVICE WORKOUTS — LAST 30 DAYS →'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: colors.surface,
-        borderRadius: radii.xxl,
-        padding: spacing.xl,
+        backgroundColor: colors.ink2,
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: colors.surfaceBorder,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
     },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: colors.textPrimary,
-        marginBottom: 6,
+    bandHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.sm,
+        backgroundColor: colors.ink,
+        borderBottomWidth: 1.5,
+        borderBottomColor: colors.hairline,
+    },
+    bandTitle: {
+        fontSize: 13,
+        fontWeight: '900',
+        color: colors.paper,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    bandRight: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+    body: {
+        padding: spacing.lg,
     },
     statusRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 14,
+        marginBottom: spacing.lg,
     },
     statusLabel: {
-        fontSize: 15,
-        color: colors.textSecondary,
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
     statusValue: {
-        fontSize: 15,
+        fontSize: 11,
         color: colors.textPrimary,
-        fontWeight: '500',
+        fontFamily: 'monospace',
+        fontWeight: '700',
+        textTransform: 'uppercase',
     },
-    syncResultBanner: {
+    bannerRunning: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.primarySurfaceLight,
-        borderRadius: radii.lg,
-        padding: spacing.md,
+        borderWidth: 1,
+        borderColor: colors.violet,
+        padding: spacing.sm,
         marginBottom: spacing.sm,
         gap: 10,
     },
-    syncResultSuccess: {
-        backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    },
-    syncResultError: {
-        backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    },
-    syncResultText: {
-        color: colors.primary,
-        fontSize: 13,
+    bannerTextRunning: {
+        color: colors.violet,
+        fontSize: 9,
+        fontWeight: '700',
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
         flex: 1,
     },
-    syncResultTextSuccess: {
-        color: colors.success,
-        fontSize: 13,
-        flex: 1,
+    bannerSuccess: {
+        borderWidth: 1,
+        borderColor: colors.cyan,
+        padding: spacing.sm,
+        marginBottom: spacing.sm,
     },
-    syncResultTextError: {
-        color: colors.error,
-        fontSize: 13,
-        flex: 1,
+    bannerTextSuccess: {
+        color: colors.cyan,
+        fontSize: 9,
+        fontWeight: '700',
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
-    successIcon: {
-        color: colors.success,
-        fontSize: 16,
-        fontWeight: '600',
+    bannerError: {
+        borderWidth: 1,
+        borderColor: colors.rose,
+        padding: spacing.sm,
+        marginBottom: spacing.sm,
+    },
+    bannerTextError: {
+        color: colors.rose,
+        fontSize: 9,
+        fontWeight: '700',
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
     buttonWrapper: {
-        borderRadius: radii.lg,
-        overflow: 'hidden',
-        marginTop: spacing.md,
+        marginTop: spacing.sm,
+        marginBottom: spacing.sm,
     },
     gradientButton: {
         paddingVertical: 14,
         alignItems: 'center',
-        borderRadius: radii.lg,
     },
     buttonDisabled: {
         opacity: 0.5,
     },
     buttonText: {
-        color: colors.textPrimary,
-        fontSize: 16,
-        fontWeight: '600',
+        color: colors.ink,
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
     outlineButton: {
-        borderWidth: 1,
-        borderColor: colors.primary,
-        paddingVertical: 14,
-        borderRadius: radii.lg,
+        borderWidth: 1.5,
+        borderColor: colors.paper,
+        paddingVertical: 12,
         alignItems: 'center',
-        marginTop: spacing.md,
+        marginTop: spacing.xs,
     },
     outlineButtonText: {
-        color: colors.primary,
-        fontSize: 15,
-        fontWeight: '600',
+        color: colors.paper,
+        fontSize: 9,
+        fontWeight: '700',
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
     },
 });

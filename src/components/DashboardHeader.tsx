@@ -1,7 +1,8 @@
 /**
- * Dashboard Header Component
+ * Dashboard Header Component — Brutal × Aurora
  *
- * FitGlue branding, settings gear, and user avatar.
+ * Top app bar: FITGLUE wordmark left, settings + avatar right.
+ * Border-bottom: 3px paper (BA rule). No border-radius.
  */
 
 import React from 'react';
@@ -18,34 +19,32 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ userInitial, onOpenSettings, topInset }: DashboardHeaderProps): JSX.Element {
     return (
-        <>
-            <View style={[styles.header, { paddingTop: topInset + 12 }]}>
-                <View style={styles.headerLeft}>
-                    <View style={styles.titleRow}>
-                        <Text style={styles.titleFit}>Fit</Text>
-                        <Text style={styles.titleGlue}>Glue</Text>
-                    </View>
-                </View>
-                <View style={styles.headerRight}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            onOpenSettings();
-                        }}
-                        style={styles.settingsButton}
-                    >
-                        <Text style={styles.settingsIcon}>⚙️</Text>
-                    </TouchableOpacity>
-                    <LinearGradient
-                        colors={gradients.primary}
-                        style={styles.avatar}
-                    >
-                        <Text style={styles.avatarText}>{userInitial}</Text>
-                    </LinearGradient>
-                </View>
+        <View style={[styles.header, { paddingTop: topInset + 12 }]}>
+            {/* Wordmark */}
+            <Text style={styles.wordmark}>FITGLUE</Text>
+
+            {/* Right controls */}
+            <View style={styles.headerRight}>
+                <TouchableOpacity
+                    onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        onOpenSettings();
+                    }}
+                    style={styles.settingsButton}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Text style={styles.settingsLabel}>⚙ YOU</Text>
+                </TouchableOpacity>
+
+                {/* Avatar — round is the BA exception for avatars */}
+                <LinearGradient
+                    colors={gradients.primary}
+                    style={styles.avatar}
+                >
+                    <Text style={styles.avatarText}>{userInitial}</Text>
+                </LinearGradient>
             </View>
-            <View style={styles.divider} />
-        </>
+        </View>
     );
 }
 
@@ -54,57 +53,47 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: spacing.xl,
-        paddingBottom: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.md,
+        backgroundColor: colors.ink,
+        borderBottomWidth: 3,
+        borderBottomColor: colors.paper,
     },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    wordmark: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: colors.paper,
+        letterSpacing: -0.5,
+        textTransform: 'uppercase',
     },
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
     },
-    titleRow: {
-        flexDirection: 'row',
-    },
-    titleFit: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.primary,
-    },
-    titleGlue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.secondary,
-    },
     settingsButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: colors.overlay,
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
     },
-    settingsIcon: {
-        fontSize: 18,
+    settingsLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.textMuted,
+        fontFamily: 'monospace',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
+    // Avatar — BA exception: round only for avatars
     avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
     },
     avatarText: {
-        color: colors.textPrimary,
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: colors.divider,
-        marginHorizontal: spacing.xl,
+        color: colors.ink,
+        fontSize: 13,
+        fontWeight: '900',
     },
 });

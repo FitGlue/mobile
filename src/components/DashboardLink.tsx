@@ -1,15 +1,16 @@
 /**
- * Dashboard Link Component
+ * Dashboard Link Component — Brutal × Aurora
  *
  * CTA to open the FitGlue web dashboard in the browser.
+ * Aurora gradient background band.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
-import { colors, gradients, spacing, radii } from '../theme';
+import { colors, gradients, spacing } from '../theme';
 import { apiConfig } from '../config/environment';
 
 export function DashboardLink(): JSX.Element {
@@ -20,55 +21,47 @@ export function DashboardLink(): JSX.Element {
 
     return (
         <TouchableOpacity
-            style={styles.dashboardLink}
             onPress={handlePress}
-            activeOpacity={0.7}
+            activeOpacity={0.85}
+            style={styles.wrapper}
         >
             <LinearGradient
-                colors={gradients.primarySurface}
+                colors={gradients.primary}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.dashboardLinkInner}
+                style={styles.band}
             >
-                <View>
-                    <Text style={styles.dashboardLinkTitle}>Open FitGlue Dashboard</Text>
-                    <Text style={styles.dashboardLinkSubtitle}>
-                        View enriched activities, manage pipelines, and more
-                    </Text>
-                </View>
-                <Text style={styles.dashboardLinkArrow}>→</Text>
+                <Text style={styles.title}>OPEN FITGLUE DASHBOARD</Text>
+                <Text style={styles.sub}>VIEW PIPELINES · ENRICHED ACTIVITIES →</Text>
             </LinearGradient>
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
-    dashboardLink: {
-        borderRadius: radii.xxl,
-        overflow: 'hidden',
+    wrapper: {
         marginBottom: spacing.lg,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 0, 110, 0.2)',
     },
-    dashboardLinkInner: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: spacing.xl,
+    band: {
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.xl,
+        flexDirection: 'column',
+        gap: 4,
     },
-    dashboardLinkTitle: {
+    title: {
         fontSize: 16,
-        fontWeight: '600',
-        color: colors.primary,
-        marginBottom: spacing.xs,
+        fontWeight: '900',
+        color: colors.ink,
+        textTransform: 'uppercase',
+        letterSpacing: -0.3,
     },
-    dashboardLinkSubtitle: {
-        fontSize: 13,
-        color: colors.textMuted,
-    },
-    dashboardLinkArrow: {
-        fontSize: 20,
-        color: colors.primary,
-        marginLeft: spacing.md,
+    sub: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: colors.ink,
+        fontFamily: 'monospace',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        opacity: 0.7,
     },
 });
