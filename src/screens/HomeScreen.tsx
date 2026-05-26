@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+    paddingHorizontal: 0,
   },
   // Hero greeting
   hero: {
@@ -377,7 +378,9 @@ const styles = StyleSheet.create({
   },
   statCell: {
     width: '50%',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    minHeight: 80,
   },
   statCellRight: {
     borderRightWidth: 1.5,

@@ -24,6 +24,7 @@ import type { HeartRateSample } from '../types/health';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { HeartRateChart } from '../components/HeartRateChart';
 import { RoutePreview } from '../components/RoutePreview';
+import { ScreenHeader } from '../components/ScreenHeader';
 
 const platformName = Platform.OS === 'ios' ? 'Apple HealthKit' : 'Health Connect';
 
@@ -52,17 +53,10 @@ export function WorkoutDetailScreen({ route, navigation }: Props): JSX.Element {
 
     return (
         <View style={styles.screen}>
-            {/* Top nav bar */}
-            <View style={styles.topBar}>
-                <TouchableOpacity
-                    onPress={() => navigation.goBack()}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                    <Text style={styles.backText}>← BACK</Text>
-                </TouchableOpacity>
-                <Text style={styles.topBarTitle}>{workout.type.toUpperCase()}</Text>
-                <View style={styles.topBarRight} />
-            </View>
+            <ScreenHeader
+                title={workout.type.toUpperCase()}
+                onBackPress={() => navigation.goBack()}
+            />
 
             <ScrollView
                 style={styles.body}
@@ -478,35 +472,6 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: colors.ink,
-    },
-    topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.xxxl + 16,
-        paddingBottom: spacing.md,
-        backgroundColor: colors.ink,
-        borderBottomWidth: 3,
-        borderBottomColor: colors.paper,
-    },
-    backText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.paper,
-        fontFamily: 'monospace',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-    },
-    topBarTitle: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: colors.paper,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    topBarRight: {
-        width: 60,
     },
     body: {
         flex: 1,

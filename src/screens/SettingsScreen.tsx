@@ -21,7 +21,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +29,7 @@ import * as StorageService from '../services/StorageService';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { formatRelativeTime } from '../utils/formatters';
 import { colors, spacing, gradients } from '../theme';
+import { ScreenHeader } from '../components/ScreenHeader';
 import {
     isBackgroundSyncRegistered,
     registerBackgroundSync,
@@ -43,7 +43,6 @@ interface SettingsScreenProps {
 
 export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element {
     const { user, signOut } = useAuth();
-    const insets = useSafeAreaInsets();
     const [syncEnabled, setSyncEnabled] = useState(true);
     const [lastSync, setLastSync] = useState<Date | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -149,20 +148,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps): JSX.Element
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            {/* Top bar */}
-            <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
-                <TouchableOpacity
-                    onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        navigation.goBack();
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                    <Text style={styles.backText}>← BACK</Text>
-                </TouchableOpacity>
-                <Text style={styles.topBarTitle}>SETTINGS</Text>
-                <View style={styles.topBarRight} />
-            </View>
+            <ScreenHeader
+                title="SETTINGS"
+                onBackPress={() => navigation.goBack()}
+            />
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 
@@ -335,34 +324,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.ink,
-    },
-    topBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.md,
-        backgroundColor: colors.ink,
-        borderBottomWidth: 3,
-        borderBottomColor: colors.paper,
-    },
-    backText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: colors.paper,
-        fontFamily: 'monospace',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-    },
-    topBarTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: colors.paper,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    topBarRight: {
-        width: 60,
     },
     scrollView: {
         flex: 1,

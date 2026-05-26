@@ -287,8 +287,9 @@ const styles = StyleSheet.create({
     },
     runStats: {
         flexDirection: 'row',
-        gap: spacing.md,
+        gap: spacing.sm,
         flex: 1,
+        flexWrap: 'wrap',
     },
     runStat: {
         fontSize: 9,
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
     },
     pillRow: {
         flexDirection: 'row',
-        gap: 4,
+        gap: spacing.xs,
         marginTop: 6,
     },
     pill: {

@@ -179,7 +179,8 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     body: {
-        padding: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
     },
     cardDescription: {
         fontSize: 14,
