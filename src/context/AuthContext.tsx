@@ -16,6 +16,7 @@ import {
 import { isDebug } from '../config/environment';
 import * as Sentry from '@sentry/react-native';
 import { getAuthErrorMessage } from '../utils/authErrors';
+import { requestPermissionsAndRegister, clearCachedToken } from '../services/NotificationService';
 
 export interface AuthState {
   user: User | null;
@@ -57,6 +58,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       // Update Sentry user context
       if (firebaseUser) {
         Sentry.setUser({ email: firebaseUser.email ?? undefined, id: firebaseUser.uid });
+        // Register push notification token now that the user is authenticated
+        requestPermissionsAndRegister();
       } else {
         Sentry.setUser(null);
       }
@@ -100,6 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
     try {
       await firebaseSignOut();
+      // Clear cached token so the next login re-registers with the backend
+      await clearCachedToken();
       if (isDebug) {
         console.log('[AuthContext] Sign out successful');
       }

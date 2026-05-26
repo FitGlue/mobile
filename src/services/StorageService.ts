@@ -17,6 +17,7 @@ const KEYS = {
   HEALTH_CONNECTION_STATUS: '@fitglue/health_connection_status',
   SYNCED_ACTIVITY_IDS: '@fitglue/synced_activity_ids',
   CACHED_WORKOUTS: '@fitglue/cached_workouts',
+  FCM_TOKEN: '@fitglue/fcm_token',
 };
 
 /**
@@ -124,6 +125,7 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.HEALTH_CONNECTION_STATUS,
       KEYS.SYNCED_ACTIVITY_IDS,
       KEYS.CACHED_WORKOUTS,
+      KEYS.FCM_TOKEN,
     ]);
   } catch (e) {
     console.error('[StorageService] Failed to clear storage:', e);
