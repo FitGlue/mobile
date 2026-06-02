@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { post, endpoints } from '../config/api';
 import { isDebug } from '../config/environment';
+import { logger } from '../utils/logger';
 
 const FCM_TOKEN_CACHE_KEY = '@fitglue/fcm_token';
 
@@ -138,6 +139,6 @@ export async function requestPermissionsAndRegister(): Promise<void> {
     }
   } catch (e) {
     // Never throw — notification registration must never crash the app
-    console.error('[NotificationService] Unexpected error during token registration:', e);
+    logger.error('[NotificationService] Unexpected error during token registration:', e);
   }
 }

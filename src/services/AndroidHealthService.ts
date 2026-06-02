@@ -8,6 +8,7 @@
 
 import { Platform } from 'react-native';
 import type { HeartRateSample, RoutePoint } from '../types/health';
+import { logger } from '../utils/logger';
 
 // Conditionally import Health Connect (only works in development builds)
 let HealthConnect: any = null;
@@ -148,7 +149,7 @@ export async function checkAvailability(): Promise<{
       return { isAvailable: false, status: 'Health Connect not installed' };
     }
   } catch (e) {
-    console.error('[AndroidHealthService] Failed to check availability:', e);
+    logger.error('[AndroidHealthService] Failed to check availability:', e);
     return { isAvailable: false, status: 'Error checking availability' };
   }
 }
@@ -166,7 +167,7 @@ export async function initializeHealthConnect(): Promise<boolean> {
     console.log('[AndroidHealthService] Health Connect initialized:', result);
     return result;
   } catch (e) {
-    console.error('[AndroidHealthService] Failed to initialize:', e);
+    logger.error('[AndroidHealthService] Failed to initialize:', e);
     return false;
   }
 }
@@ -224,7 +225,7 @@ export async function checkAndRequestPermissions(): Promise<{
       ],
     };
   } catch (e) {
-    console.error('[AndroidHealthService] Permission request failed:', e);
+    logger.error('[AndroidHealthService] Permission request failed:', e);
     return { granted: false, permissions: [] };
   }
 }
@@ -417,7 +418,7 @@ export async function queryNewWorkouts(
   try {
     await HealthConnect.initialize();
   } catch (e) {
-    console.error('[AndroidHealthService] SDK initialization failed in queryNewWorkouts:', e);
+    logger.error('[AndroidHealthService] SDK initialization failed in queryNewWorkouts:', e);
     return [];
   }
 
@@ -477,7 +478,7 @@ export async function queryNewWorkouts(
     console.log(`[AndroidHealthService] Processed ${activities.length} activities`);
     return activities;
   } catch (e) {
-    console.error('[AndroidHealthService] Failed to query workouts:', e);
+    logger.error('[AndroidHealthService] Failed to query workouts:', e);
     return [];
   }
 }
@@ -500,7 +501,7 @@ export async function openHealthConnectSettings(): Promise<void> {
   try {
     await HealthConnect.openHealthConnectSettings();
   } catch (e) {
-    console.error('[AndroidHealthService] Failed to open settings:', e);
+    logger.error('[AndroidHealthService] Failed to open settings:', e);
   }
 }
 

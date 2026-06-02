@@ -8,6 +8,7 @@
 
 import { Platform } from 'react-native';
 import type { HeartRateSample, RoutePoint } from '../types/health';
+import { logger } from '../utils/logger';
 
 // Conditionally import HealthKit (only works on iOS development builds)
 let HealthKit: any = null;
@@ -251,7 +252,7 @@ export async function queryNewWorkouts(
     console.log(`[AppleHealthService] Processed ${activities.length} activities`);
     return activities;
   } catch (e) {
-    console.error('[AppleHealthService] Failed to query workouts:', e);
+    logger.error('[AppleHealthService] Failed to query workouts:', e);
     return [];
   }
 }
@@ -301,7 +302,7 @@ export async function initializeHealthKit(): Promise<boolean> {
     console.log('[AppleHealthService] HealthKit authorization requested successfully');
     return true;
   } catch (e) {
-    console.error('[AppleHealthService] Failed to initialize:', e);
+    logger.error('[AppleHealthService] Failed to initialize:', e);
     return false;
   }
 }

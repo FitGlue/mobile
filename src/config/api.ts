@@ -7,6 +7,7 @@
 
 import { apiConfig } from './environment';
 import { auth } from './firebase';
+import { logger } from '../utils/logger';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -26,7 +27,7 @@ async function getAuthToken(): Promise<string | null> {
   try {
     return await user.getIdToken();
   } catch (error) {
-    console.error('[API] Failed to get auth token:', error);
+    logger.error('[API] Failed to get auth token:', error);
     return null;
   }
 }
@@ -70,7 +71,7 @@ export async function apiRequest<T>(
       error: response.ok ? undefined : (data as { error?: string })?.error || response.statusText,
     };
   } catch (error) {
-    console.error('[API] Request failed:', error);
+    logger.error('[API] Request failed:', error);
     return {
       status: 0,
       error: error instanceof Error ? error.message : 'Network error',

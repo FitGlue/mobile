@@ -5,6 +5,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 // Storage keys
 const KEYS = {
@@ -34,7 +35,7 @@ export async function getLastSyncDate(): Promise<Date | null> {
     }
     return null;
   } catch (e) {
-    console.error('[StorageService] Failed to get last sync date:', e);
+    logger.error('[StorageService] Failed to get last sync date:', e);
     return null;
   }
 }
@@ -46,7 +47,7 @@ export async function setLastSyncDate(date: Date): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.LAST_SYNC_DATE, date.toISOString());
   } catch (e) {
-    console.error('[StorageService] Failed to set last sync date:', e);
+    logger.error('[StorageService] Failed to set last sync date:', e);
   }
 }
 
@@ -58,7 +59,7 @@ export async function isSyncEnabled(): Promise<boolean> {
     const value = await AsyncStorage.getItem(KEYS.SYNC_ENABLED);
     return value !== 'false'; // Default to enabled
   } catch (e) {
-    console.error('[StorageService] Failed to get sync enabled status:', e);
+    logger.error('[StorageService] Failed to get sync enabled status:', e);
     return true;
   }
 }
@@ -70,7 +71,7 @@ export async function setSyncEnabled(enabled: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.SYNC_ENABLED, enabled ? 'true' : 'false');
   } catch (e) {
-    console.error('[StorageService] Failed to set sync enabled status:', e);
+    logger.error('[StorageService] Failed to set sync enabled status:', e);
   }
 }
 
@@ -94,7 +95,7 @@ export async function getUserPreferences(): Promise<UserPreferences> {
     }
     return {};
   } catch (e) {
-    console.error('[StorageService] Failed to get user preferences:', e);
+    logger.error('[StorageService] Failed to get user preferences:', e);
     return {};
   }
 }
@@ -106,7 +107,7 @@ export async function setUserPreferences(preferences: UserPreferences): Promise<
   try {
     await AsyncStorage.setItem(KEYS.USER_PREFERENCES, JSON.stringify(preferences));
   } catch (e) {
-    console.error('[StorageService] Failed to set user preferences:', e);
+    logger.error('[StorageService] Failed to set user preferences:', e);
   }
 }
 
@@ -128,7 +129,7 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.FCM_TOKEN,
     ]);
   } catch (e) {
-    console.error('[StorageService] Failed to clear storage:', e);
+    logger.error('[StorageService] Failed to clear storage:', e);
   }
 }
 
@@ -172,7 +173,7 @@ export async function getHealthState(): Promise<PersistedHealthState> {
 
     return { isInitialized, permissions, connectionStatus };
   } catch (e) {
-    console.error('[StorageService] Failed to get health state:', e);
+    logger.error('[StorageService] Failed to get health state:', e);
     return DEFAULT_HEALTH_STATE;
   }
 }
@@ -186,7 +187,7 @@ export async function setHealthState(state: PersistedHealthState): Promise<void>
     await AsyncStorage.setItem(KEYS.HEALTH_PERMISSIONS, JSON.stringify(state.permissions));
     await AsyncStorage.setItem(KEYS.HEALTH_CONNECTION_STATUS, state.connectionStatus);
   } catch (e) {
-    console.error('[StorageService] Failed to set health state:', e);
+    logger.error('[StorageService] Failed to set health state:', e);
   }
 }
 
@@ -210,7 +211,7 @@ export async function getQueuedActivities(): Promise<any[]> {
     }
     return [];
   } catch (e) {
-    console.error('[StorageService] Failed to get queued activities:', e);
+    logger.error('[StorageService] Failed to get queued activities:', e);
     return [];
   }
 }
@@ -225,7 +226,7 @@ export async function addToQueue(activities: any[]): Promise<void> {
     await AsyncStorage.setItem(KEYS.PENDING_ACTIVITIES, JSON.stringify(combined));
     console.log(`[StorageService] Queued ${activities.length} activities (total: ${combined.length})`);
   } catch (e) {
-    console.error('[StorageService] Failed to queue activities:', e);
+    logger.error('[StorageService] Failed to queue activities:', e);
   }
 }
 
@@ -236,7 +237,7 @@ export async function clearQueue(): Promise<void> {
   try {
     await AsyncStorage.removeItem(KEYS.PENDING_ACTIVITIES);
   } catch (e) {
-    console.error('[StorageService] Failed to clear queue:', e);
+    logger.error('[StorageService] Failed to clear queue:', e);
   }
 }
 
@@ -252,7 +253,7 @@ export async function getSyncedIds(): Promise<Set<string>> {
     }
     return new Set();
   } catch (e) {
-    console.error('[StorageService] Failed to get synced IDs:', e);
+    logger.error('[StorageService] Failed to get synced IDs:', e);
     return new Set();
   }
 }
@@ -269,7 +270,7 @@ export async function addSyncedId(id: string): Promise<void> {
       JSON.stringify([...current])
     );
   } catch (e) {
-    console.error('[StorageService] Failed to add synced ID:', e);
+    logger.error('[StorageService] Failed to add synced ID:', e);
   }
 }
 
@@ -290,7 +291,7 @@ export async function getCachedWorkouts(): Promise<any[]> {
     }
     return [];
   } catch (e) {
-    console.error('[StorageService] Failed to get cached workouts:', e);
+    logger.error('[StorageService] Failed to get cached workouts:', e);
     return [];
   }
 }
@@ -302,6 +303,6 @@ export async function setCachedWorkouts(workouts: any[]): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.CACHED_WORKOUTS, JSON.stringify(workouts));
   } catch (e) {
-    console.error('[StorageService] Failed to cache workouts:', e);
+    logger.error('[StorageService] Failed to cache workouts:', e);
   }
 }

@@ -15,6 +15,7 @@ import {
 } from '../config/firebase';
 import { isDebug } from '../config/environment';
 import * as Sentry from '@sentry/react-native';
+import { logger } from '../utils/logger';
 import { getAuthErrorMessage } from '../utils/authErrors';
 import { requestPermissionsAndRegister, clearCachedToken } from '../services/NotificationService';
 
@@ -111,9 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     } catch (err) {
       const errorMessage = getAuthErrorMessage(err);
       setError(errorMessage);
-      if (isDebug) {
-        console.error('[AuthContext] Sign out failed:', errorMessage);
-      }
+      logger.error('[AuthContext] Sign out failed:', err);
     } finally {
       setIsLoading(false);
     }

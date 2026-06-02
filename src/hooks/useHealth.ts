@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import type { HealthPermissionStatus, WorkoutData, ConnectionStatus, RoutePoint } from '../types/health';
 import { post, endpoints } from '../config/api';
+import { logger } from '../utils/logger';
 import { mapExerciseType } from '../services/AndroidHealthService';
 import { mapActivityType as mapHKActivityType } from '../services/AppleHealthService';
 import * as StorageService from '../services/StorageService';
@@ -64,7 +65,7 @@ export function useHealth(): UseHealthResult {
         isInitialized: init,
         permissions: perms,
         connectionStatus: connStatus,
-      }).catch((e) => console.error('[useHealth] Failed to persist health state:', e));
+      }).catch((e) => logger.error('[useHealth] Failed to persist health state:', e));
     },
     []
   );
@@ -80,7 +81,7 @@ export function useHealth(): UseHealthResult {
       return await fn();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error(`[useHealth] ${label} failed:`, message);
+      logger.error(`[useHealth] ${label} failed:`, e instanceof Error ? e : new Error(message));
       setError(`${label}: ${message}`);
       return fallback;
     }
@@ -156,15 +157,15 @@ export function useHealth(): UseHealthResult {
           try {
             const result = await post(endpoints.mobileConnect('health-connect'));
             if (result.error) {
-              console.error('[useHealth] Failed to register Health Connect:', result.error);
+              logger.error('[useHealth] Failed to register Health Connect:', new Error(String(result.error)));
               setConnectionStatus('error');
               newConnStatus = 'error';
             } else {
               setConnectionStatus('connected');
               newConnStatus = 'connected';
             }
-          } catch {
-            console.error('[useHealth] Network error registering Health Connect');
+          } catch (e) {
+            logger.error('[useHealth] Network error registering Health Connect', e);
             setConnectionStatus('error');
             newConnStatus = 'error';
           }
@@ -189,15 +190,15 @@ export function useHealth(): UseHealthResult {
         try {
           const result = await post(endpoints.mobileConnect('apple-health'));
           if (result.error) {
-            console.error('[useHealth] Failed to register Apple Health:', result.error);
+            logger.error('[useHealth] Failed to register Apple Health:', new Error(String(result.error)));
             setConnectionStatus('error');
             newConnStatus = 'error';
           } else {
             setConnectionStatus('connected');
             newConnStatus = 'connected';
           }
-        } catch {
-          console.error('[useHealth] Network error registering Apple Health');
+        } catch (e) {
+          logger.error('[useHealth] Network error registering Apple Health', e);
           setConnectionStatus('error');
           newConnStatus = 'error';
         }

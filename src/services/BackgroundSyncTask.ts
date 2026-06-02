@@ -9,6 +9,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 import { performSync } from './SyncService';
 import { isSyncEnabled } from './StorageService';
+import { logger } from '../utils/logger';
 
 // Task name constant
 export const BACKGROUND_SYNC_TASK = 'BACKGROUND_SYNC';
@@ -44,10 +45,10 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
       return BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
-    console.error('[BackgroundSync] Sync failed:', result.error);
+    logger.error('[BackgroundSync] Sync failed:', new Error(result.error));
     return BackgroundFetch.BackgroundFetchResult.Failed;
   } catch (error) {
-    console.error('[BackgroundSync] Task error:', error);
+    logger.error('[BackgroundSync] Task error:', error);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
@@ -76,7 +77,7 @@ export async function registerBackgroundSync(): Promise<boolean> {
     console.log('[BackgroundSync] Task registered successfully');
     return true;
   } catch (error) {
-    console.error('[BackgroundSync] Failed to register task:', error);
+    logger.error('[BackgroundSync] Failed to register task:', error);
     return false;
   }
 }
@@ -98,7 +99,7 @@ export async function unregisterBackgroundSync(): Promise<boolean> {
     console.log('[BackgroundSync] Task unregistered successfully');
     return true;
   } catch (error) {
-    console.error('[BackgroundSync] Failed to unregister task:', error);
+    logger.error('[BackgroundSync] Failed to unregister task:', error);
     return false;
   }
 }
@@ -110,7 +111,7 @@ export async function isBackgroundSyncRegistered(): Promise<boolean> {
   try {
     return await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
   } catch (error) {
-    console.error('[BackgroundSync] Failed to check registration:', error);
+    logger.error('[BackgroundSync] Failed to check registration:', error);
     return false;
   }
 }
@@ -138,7 +139,7 @@ export async function getBackgroundFetchStatus(): Promise<{
       isAvailable: status === BackgroundFetch.BackgroundFetchStatus.Available,
     };
   } catch (error) {
-    console.error('[BackgroundSync] Failed to get status:', error);
+    logger.error('[BackgroundSync] Failed to get status:', error);
     return {
       status: BackgroundFetch.BackgroundFetchStatus.Denied,
       statusName: 'Error',

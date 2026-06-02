@@ -8,6 +8,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { auth } from '../config/firebase';
+import { logger } from '../utils/logger';
 import { apiConfig } from '../config/environment';
 import * as AppleHealthService from './AppleHealthService';
 import * as AndroidHealthService from './AndroidHealthService';
@@ -37,7 +38,7 @@ async function getAuthToken(): Promise<string | null> {
   try {
     return await user.getIdToken();
   } catch (e) {
-    console.error('[SyncService] Failed to get auth token:', e);
+    logger.error('[SyncService] Failed to get auth token:', e);
     return null;
   }
 }
@@ -101,7 +102,7 @@ async function submitToBackend(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[SyncService] Backend error:', response.status, errorText);
+      logger.error('[SyncService] Backend error:', new Error(`${response.status} ${errorText}`));
       return {
         success: false,
         processedCount: 0,
@@ -118,7 +119,7 @@ async function submitToBackend(
       error: result.error,
     };
   } catch (e) {
-    console.error('[SyncService] Network error:', e);
+    logger.error('[SyncService] Network error:', e);
 
     // Queue activities for retry on next sync
     console.log(`[SyncService] Queuing ${activities.length} activities for retry`);
@@ -217,7 +218,7 @@ export async function performSync(): Promise<SyncResult> {
     };
   }
 
-  console.error('[SyncService] Sync failed:', result.error);
+  logger.error('[SyncService] Sync failed:', new Error(result.error));
   return result;
 }
 
