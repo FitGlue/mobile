@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "primaryColor": "#FF006E",
-    "description": "FitGlue connects your fitness apps. Sync workouts from Apple Health and Health Connect to Strava, Garmin, Hevy, and more — automatically enriched with heart rate zones, pace analysis, and personal records.",
+    "description": "FitGlue connects your fitness apps. Sync workouts from Apple Health and Health Connect to Strava, Hevy, and more — automatically enriched with heart rate zones, pace analysis, and personal records.",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

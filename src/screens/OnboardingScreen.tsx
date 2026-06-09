@@ -36,7 +36,7 @@ const SLIDES: OnboardingSlide[] = [
         id: '1',
         emoji: '🏃',
         title: 'YOUR FITNESS APPS,\nFINALLY TALKING',
-        subtitle: 'STRAVA · GARMIN · FITBIT · HEVY · HEALTHKIT',
+        subtitle: 'STRAVA · POLAR · FITBIT · HEVY · HEALTHKIT',
         description:
             'FitGlue connects all your fitness platforms so your data flows where it needs to — automatically.',
     },
