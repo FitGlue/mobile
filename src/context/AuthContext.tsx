@@ -18,12 +18,14 @@ import * as Sentry from '@sentry/react-native';
 import { logger } from '../utils/logger';
 import { getAuthErrorMessage } from '../utils/authErrors';
 import { requestPermissionsAndRegister, clearCachedToken } from '../services/NotificationService';
+import { get, endpoints } from '../config/api';
 
 export interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  customToken: string | null;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customToken, setCustomToken] = useState<string | null>(null);
 
   // Subscribe to auth state changes on mount
   useEffect(() => {
@@ -61,8 +64,13 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         Sentry.setUser({ email: firebaseUser.email ?? undefined, id: firebaseUser.uid });
         // Register push notification token now that the user is authenticated
         requestPermissionsAndRegister();
+        // Fetch a Firebase custom token so the WebView can sign in without a second login
+        get<{ customToken: string }>(endpoints.webAuthToken)
+          .then(res => { if (res.data?.customToken) setCustomToken(res.data.customToken); })
+          .catch(() => {}); // non-fatal: web app will show its own login if token is missing
       } else {
         Sentry.setUser(null);
+        setCustomToken(null);
       }
     });
 
@@ -128,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     isLoading,
     isAuthenticated: user !== null,
     error,
+    customToken,
     signIn,
     signOut,
     clearError,

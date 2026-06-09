@@ -141,4 +141,5 @@ export const endpoints = {
   // Mobile-specific
   mobileSync: '/api/v2/users/me/mobile/sync',
   mobileConnect: (provider: string) => `/api/v2/users/me/integrations/${provider}/connect`,
+  webAuthToken: '/api/v2/users/me/web-auth-token',
 };

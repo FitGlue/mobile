@@ -14,8 +14,9 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
-import { LoginScreen, HomeScreen, OnboardingScreen, SettingsScreen, WorkoutDetailScreen } from '../screens';
-import type { WorkoutData } from '../hooks/useHealth';
+import { LoginScreen, OnboardingScreen } from '../screens';
+import { ShowcaseModalScreen } from '../screens/ShowcaseModalScreen';
+import { TabNavigator } from './TabNavigator';
 import { navigationIntegration } from '../../App';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
@@ -24,14 +25,8 @@ const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
-  Home: undefined;
-  Settings: undefined;
-  WorkoutDetail: {
-    workout: WorkoutData;
-    isSynced: boolean;
-    isSyncing: boolean;
-    onSync: (workout: WorkoutData) => void;
-  };
+  MainTabs: undefined;
+  ShowcaseModal: { url: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -81,18 +76,13 @@ export function AppNavigator(): JSX.Element {
         }}
       >
         {isAuthenticated ? (
-          // Authenticated stack
+          // Authenticated stack — tabs + modal screens above them
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
             <Stack.Screen
-              name="Settings"
-              component={SettingsScreen}
-              options={{ animation: 'slide_from_right' }}
-            />
-            <Stack.Screen
-              name="WorkoutDetail"
-              component={WorkoutDetailScreen}
-              options={{ animation: 'slide_from_right' }}
+              name="ShowcaseModal"
+              component={ShowcaseModalScreen}
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
             />
           </>
         ) : hasSeenOnboarding ? (
