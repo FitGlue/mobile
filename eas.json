@@ -22,12 +22,14 @@
         },
         "production": {
             "distribution": "store",
+            "channel": "production",
             "env": {
                 "EXPO_PUBLIC_ENVIRONMENT": "production"
             }
         },
         "production-apk": {
             "distribution": "internal",
+            "channel": "production",
             "android": {
                 "buildType": "apk"
             },
@@ -37,6 +39,7 @@
         },
         "local-verification": {
             "distribution": "internal",
+            "channel": "production",
             "android": {
                 "buildType": "apk",
                 "credentialsSource": "local"
