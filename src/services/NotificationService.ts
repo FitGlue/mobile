@@ -6,7 +6,7 @@
  *
  * Flow:
  *  1. Request notification permission from the OS
- *  2. Get the Expo push token (which wraps the underlying FCM/APNs token)
+ *  2. Get the raw device push token (FCM on Android, APNs on iOS)
  *  3. Compare against the cached token in AsyncStorage — skip POST if unchanged
  *  4. POST the token to the server's FCM token endpoint
  *  5. Set up the Android default notification channel
@@ -108,9 +108,11 @@ export async function requestPermissionsAndRegister(): Promise<void> {
       return;
     }
 
-    // Retrieve the Expo push token (wraps FCM token on Android, APNs on iOS)
-    const tokenData = await Notifications.getExpoPushTokenAsync();
-    const token = tokenData.data;
+    // Retrieve the raw device push token (FCM on Android, APNs on iOS).
+    // getExpoPushTokenAsync() returns an Expo relay token (ExponentPushToken[...])
+    // which is not accepted by Firebase Admin SDK — we need the underlying device token.
+    const tokenData = await Notifications.getDevicePushTokenAsync();
+    const token = tokenData.data as string;
 
     if (!token) {
       console.warn('[NotificationService] No push token available');
@@ -127,7 +129,8 @@ export async function requestPermissionsAndRegister(): Promise<void> {
     }
 
     // POST token to the FitGlue backend
-    const response = await post(endpoints.fcmToken, { token });
+    const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+    const response = await post(endpoints.fcmToken, { token, platform });
 
     if (response.status === 200 || response.status === 201 || response.status === 204) {
       await cacheToken(token);

@@ -1,13 +1,3 @@
-/**
- * FitGlue Mobile App Navigator
- *
- * Auth-aware navigation that shows:
- * 1. Onboarding carousel (first launch)
- * 2. Login screen (unauthenticated)
- * 3. Home screen (authenticated)
- * 4. Settings screen (from home)
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
@@ -17,23 +7,20 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { LoginScreen, OnboardingScreen } from '../screens';
 import { ShowcaseModalScreen } from '../screens/ShowcaseModalScreen';
-import { TabNavigator } from './TabNavigator';
-import { navigateTabWebView } from './webViewRegistry';
+import { MainScreen, mainWebViewRef } from '../screens/MainScreen';
 import { navigationIntegration } from '../../App';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
 
-// Navigation types
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
-  MainTabs: undefined;
+  Main: undefined;
   ShowcaseModal: { url: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Loading screen shown while checking auth/onboarding state
 function LoadingScreen(): JSX.Element {
   return (
     <View style={styles.loadingContainer}>
@@ -42,13 +29,12 @@ function LoadingScreen(): JSX.Element {
   );
 }
 
-// Maps notification payload `screen` values to bottom tab names
-const SCREEN_TO_TAB: Record<string, string> = {
-  activity: 'Activities',
-  activities: 'Activities',
-  pipeline: 'Pipelines',
-  pipelines: 'Pipelines',
-  sync: 'Sync',
+// Maps notification payload `screen` values to SPA paths
+const SCREEN_TO_PATH: Record<string, string> = {
+  activity: '/app/activities',
+  activities: '/app/activities',
+  pipeline: '/app/settings/pipelines',
+  pipelines: '/app/settings/pipelines',
 };
 
 export function AppNavigator(): JSX.Element {
@@ -62,7 +48,7 @@ export function AppNavigator(): JSX.Element {
     });
   }, []);
 
-  // Push notification deep linking — navigate to correct tab when user taps a notification
+  // Push notification deep linking
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as {
@@ -72,22 +58,21 @@ export function AppNavigator(): JSX.Element {
       };
       if (!data?.screen) return;
 
-      const tab = SCREEN_TO_TAB[data.screen];
-      if (!tab) return;
+      if (!navigationRef.isReady()) return;
+      navigationRef.navigate('Main', {} as never);
 
-      // Navigate to the correct tab in the authenticated stack
-      if (navigationRef.isReady()) {
-        navigationRef.navigate('MainTabs', {} as never);
-        // Give React Navigation a tick to settle then switch tab + drive WebView
+      const webPath = data.path
+        ?? (data.id && data.screen !== 'sync' ? `${SCREEN_TO_PATH[data.screen]}/${data.id}` : null)
+        ?? SCREEN_TO_PATH[data.screen]
+        ?? null;
+
+      if (webPath) {
+        const safe = webPath.replace(/['"`\\]/g, '');
         setTimeout(() => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (navigationRef as any).navigate('MainTabs', { screen: tab });
-          // If a specific path was provided (e.g. /activities/abc123), inject it
-          const path = data.path ?? (data.id && tab !== 'Sync' ? `/${tab.toLowerCase()}/${data.id}` : null);
-          if (path) {
-            setTimeout(() => navigateTabWebView(tab, path), 300);
-          }
-        }, 100);
+          mainWebViewRef.current?.injectJavaScript(
+            `window.__fg && window.__fg.navigate('${safe}'); true;`
+          );
+        }, 300);
       }
     });
     return () => sub.remove();
@@ -98,7 +83,6 @@ export function AppNavigator(): JSX.Element {
     setHasSeenOnboarding(true);
   }, []);
 
-  // Show loading screen while checking auth or onboarding state
   if (isLoading || hasSeenOnboarding === null) {
     return <LoadingScreen />;
   }
@@ -118,9 +102,8 @@ export function AppNavigator(): JSX.Element {
         }}
       >
         {isAuthenticated ? (
-          // Authenticated stack — tabs + modal screens above them
           <>
-            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            <Stack.Screen name="Main" component={MainScreen} />
             <Stack.Screen
               name="ShowcaseModal"
               component={ShowcaseModalScreen}
@@ -128,10 +111,8 @@ export function AppNavigator(): JSX.Element {
             />
           </>
         ) : hasSeenOnboarding ? (
-          // Seen onboarding, show login
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
-          // First launch — show onboarding
           <Stack.Screen name="Onboarding">
             {() => <OnboardingScreen onComplete={handleOnboardingComplete} />}
           </Stack.Screen>
