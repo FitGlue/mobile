@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,26 +15,48 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import { useAuth } from '../context/AuthContext';
 import { useWebViewBridge } from '../hooks/useWebViewBridge';
+import { registerTabNav, unregisterTabNav } from '../navigation/webViewRegistry';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing } from '../theme';
 
 interface WebAppScreenProps {
   url: string;
+  tabName?: string;
 }
 
-export function WebAppScreen({ url }: WebAppScreenProps): JSX.Element {
-  const { customToken } = useAuth();
+export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
+  const { customToken, isAuthenticated } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const { webViewRef, canGoBack, setCanGoBack, isLoading, setIsLoading, hasError, setHasError, handleMessage } =
+  const { webViewRef, canGoBack, setCanGoBack, isLoading, setIsLoading, hasError, setHasError, navigate: bridgeNavigate, handleMessage } =
     useWebViewBridge({
       onOpenShowcase: (showcaseUrl) => {
-        // Navigate to ShowcaseModal in the parent stack navigator.
-        // Use 'as any' to cross navigator boundaries — ShowcaseModal lives in the root stack above tabs.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (navigation.getParent() as any)?.navigate('ShowcaseModal', { url: showcaseUrl });
       },
+      onAuthExpired: async () => {
+        // Re-fetch a fresh custom token and call window.__fg.refreshAuth() in the WebView
+        try {
+          const { get, endpoints } = await import('../config/api');
+          const res = await get<{ customToken: string }>(endpoints.webAuthToken);
+          if (res.data?.customToken) {
+            const safeToken = JSON.stringify(res.data.customToken);
+            webViewRef.current?.injectJavaScript(
+              `window.__fg && window.__fg.refreshAuth(${safeToken}); true;`
+            );
+          }
+        } catch { /* non-fatal */ }
+      },
     });
+
+  // Register this WebView's navigate function in the global registry so
+  // AppNavigator can drive WebView navigation from push notification taps.
+  useEffect(() => {
+    if (tabName) {
+      registerTabNav(tabName, bridgeNavigate);
+      return () => unregisterTabNav(tabName);
+    }
+  }, [tabName, bridgeNavigate]);
 
   // Handle Android hardware back button — navigate the WebView back if possible
   useFocusEffect(
@@ -52,7 +74,19 @@ export function WebAppScreen({ url }: WebAppScreenProps): JSX.Element {
     }, [canGoBack, webViewRef])
   );
 
-  // Inject custom token before content loads so web app can sign in without a second login
+  // Don't mount the WebView until the custom token is ready. Mounting without it means
+  // injectedJavaScriptBeforeContentLoaded fires with no token and the web app shows
+  // its login redirect. The token fetch takes ~200-500ms after sign-in.
+  if (isAuthenticated && customToken === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={colors.pink} />
+        </View>
+      </View>
+    );
+  }
+
   const injectedJS = customToken
     ? `window.__fitglueCustomToken = ${JSON.stringify(customToken)}; true;`
     : 'true;';

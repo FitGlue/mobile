@@ -6,6 +6,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
@@ -19,10 +20,19 @@ import {
   unregisterBackgroundSync,
   triggerManualSync,
 } from '../services/BackgroundSyncTask';
+import { get, endpoints } from '../config/api';
 import { formatRelativeTime } from '../utils/formatters';
 import { colors, spacing } from '../theme';
 import { HealthStatusCard } from '../components/HealthStatusCard';
 import { SyncStatusCard, SyncStatus, SyncResultInfo } from '../components/SyncStatusCard';
+
+interface Activity {
+  id: string;
+  name: string;
+  type: string;
+  startedAt: string;
+  durationSeconds?: number;
+}
 
 export function SyncScreen(): JSX.Element {
   const insets = useSafeAreaInsets();
@@ -43,6 +53,18 @@ export function SyncScreen(): JSX.Element {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [lastSyncResult, setLastSyncResult] = useState<SyncResultInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  const fetchRecentActivities = useCallback(async () => {
+    setActivitiesLoading(true);
+    try {
+      const res = await get<{ activities: Activity[] }>(`${endpoints.activities}?limit=5&page=1`);
+      if (res.data?.activities) setRecentActivities(res.data.activities);
+    } catch { /* non-fatal */ } finally {
+      setActivitiesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -55,7 +77,8 @@ export function SyncScreen(): JSX.Element {
       setSyncEnabled(enabled);
       setBgSyncRegistered(registered);
     })();
-  }, []);
+    fetchRecentActivities();
+  }, [fetchRecentActivities]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,7 +92,8 @@ export function SyncScreen(): JSX.Element {
         setSyncEnabled(enabled);
         setBgSyncRegistered(registered);
       })();
-    }, [])
+      fetchRecentActivities();
+    }, [fetchRecentActivities])
   );
 
   const handleInitializeHealth = useCallback(async () => {
@@ -94,7 +118,7 @@ export function SyncScreen(): JSX.Element {
       const result = await triggerManualSync();
       setLastSyncResult(result);
       setSyncStatus(result.success ? 'success' : 'error');
-      if (result.success) setLastSync(new Date());
+      if (result.success) { setLastSync(new Date()); fetchRecentActivities(); }
     } catch {
       setSyncStatus('error');
       setLastSyncResult({ success: false, processedCount: 0, error: 'Sync failed unexpectedly' });
@@ -194,6 +218,41 @@ export function SyncScreen(): JSX.Element {
               {bgSyncRegistered ? 'BACKGROUND SYNC REGISTERED WITH OS' : 'BACKGROUND SYNC NOT REGISTERED'}
             </Text>
           </View>
+        </View>
+
+        {/* Recently synced activities from FitGlue */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionLabel}>RECENTLY SYNCED</Text>
+            <TouchableOpacity onPress={fetchRecentActivities} style={styles.refreshBtn}>
+              <Text style={styles.refreshBtnText}>↺ REFRESH</Text>
+            </TouchableOpacity>
+          </View>
+          {activitiesLoading ? (
+            <View style={styles.row}>
+              <Text style={styles.rowSubtitle}>LOADING...</Text>
+            </View>
+          ) : recentActivities.length === 0 ? (
+            <View style={styles.row}>
+              <Text style={styles.rowSubtitle}>NO ACTIVITIES SYNCED YET</Text>
+            </View>
+          ) : (
+            recentActivities.map((act) => (
+              <View key={act.id} style={styles.activityRow}>
+                <View style={styles.activityType}>
+                  <Text style={styles.activityTypeText}>{act.type?.substring(0, 3).toUpperCase() ?? '---'}</Text>
+                </View>
+                <View style={styles.activityInfo}>
+                  <Text style={styles.activityName} numberOfLines={1}>{act.name}</Text>
+                  <Text style={styles.activityMeta}>
+                    {act.startedAt ? new Date(act.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                    {act.durationSeconds ? `  ·  ${Math.round(act.durationSeconds / 60)}MIN` : ''}
+                  </Text>
+                </View>
+                <View style={[styles.syncDot, styles.dotCyan]} />
+              </View>
+            ))
+          )}
         </View>
 
       </ScrollView>
@@ -326,5 +385,70 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: spacing.lg,
+    backgroundColor: colors.ink2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  refreshBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  refreshBtnText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: colors.pink,
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.ink2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+    gap: spacing.sm,
+  },
+  activityType: {
+    width: 32,
+    height: 32,
+    borderWidth: 1.5,
+    borderColor: colors.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityTypeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.paper,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  activityMeta: {
+    fontSize: 9,
+    color: colors.textMuted,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
 });

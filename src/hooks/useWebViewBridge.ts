@@ -12,6 +12,7 @@ export interface WebViewBridgeOptions {
   onRouteChange?: (path: string) => void;
   onOpenShowcase?: (url: string) => void;
   onReady?: () => void;
+  onAuthExpired?: () => void;
 }
 
 export function useWebViewBridge(options: WebViewBridgeOptions = {}) {
@@ -41,11 +42,14 @@ export function useWebViewBridge(options: WebViewBridgeOptions = {}) {
         case 'ready':
           options.onReady?.();
           break;
+        case 'authExpired':
+          options.onAuthExpired?.();
+          break;
       }
     } catch {
       // ignore malformed messages
     }
-  }, [options.onRouteChange, options.onOpenShowcase, options.onReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [options.onRouteChange, options.onOpenShowcase, options.onReady, options.onAuthExpired]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     webViewRef,

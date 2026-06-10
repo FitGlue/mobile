@@ -56,17 +56,19 @@ function TabIcon({ color, shape }: { color: string; shape: 'grid' | 'list' | 'fl
   }
 }
 
-// Wrapper components so each tab has its own screen instance
+// Wrapper components so each tab has its own screen instance.
+// tabName is passed to WebAppScreen so push notification deep links can drive
+// WebView navigation via the global webViewRegistry.
 function DashboardTab() {
-  return <WebAppScreen url={`${apiConfig.baseUrl}/app/`} />;
+  return <WebAppScreen url={`${apiConfig.baseUrl}/app/`} tabName="Dashboard" />;
 }
 
 function ActivitiesTab() {
-  return <WebAppScreen url={`${apiConfig.baseUrl}/app/activities`} />;
+  return <WebAppScreen url={`${apiConfig.baseUrl}/app/activities`} tabName="Activities" />;
 }
 
 function PipelinesTab() {
-  return <WebAppScreen url={`${apiConfig.baseUrl}/app/settings/pipelines`} />;
+  return <WebAppScreen url={`${apiConfig.baseUrl}/app/settings/pipelines`} tabName="Pipelines" />;
 }
 
 export function TabNavigator() {
