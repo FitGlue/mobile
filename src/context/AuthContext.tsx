@@ -26,6 +26,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   error: string | null;
   customToken: string | null;
+  customTokenReady: boolean;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customToken, setCustomToken] = useState<string | null>(null);
+  const [customTokenReady, setCustomTokenReady] = useState(false);
 
   // Subscribe to auth state changes on mount
   useEffect(() => {
@@ -65,12 +67,15 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         // Register push notification token now that the user is authenticated
         requestPermissionsAndRegister();
         // Fetch a Firebase custom token so the WebView can sign in without a second login
+        setCustomTokenReady(false);
         get<{ customToken: string }>(endpoints.webAuthToken)
           .then(res => { if (res.data?.customToken) setCustomToken(res.data.customToken); })
-          .catch(() => {}); // non-fatal: web app will show its own login if token is missing
+          .catch(() => {})
+          .finally(() => setCustomTokenReady(true));
       } else {
         Sentry.setUser(null);
         setCustomToken(null);
+        setCustomTokenReady(false);
       }
     });
 
@@ -137,6 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     isAuthenticated: user !== null,
     error,
     customToken,
+    customTokenReady,
     signIn,
     signOut,
     clearError,

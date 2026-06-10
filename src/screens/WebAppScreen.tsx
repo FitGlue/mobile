@@ -25,7 +25,7 @@ interface WebAppScreenProps {
 }
 
 export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
-  const { customToken, isAuthenticated } = useAuth();
+  const { customToken, isAuthenticated, customTokenReady } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const { webViewRef, canGoBack, setCanGoBack, isLoading, setIsLoading, hasError, setHasError, navigate: bridgeNavigate, handleMessage } =
@@ -74,10 +74,13 @@ export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
     }, [canGoBack, webViewRef])
   );
 
-  // Don't mount the WebView until the custom token is ready. Mounting without it means
-  // injectedJavaScriptBeforeContentLoaded fires with no token and the web app shows
-  // its login redirect. The token fetch takes ~200-500ms after sign-in.
-  if (isAuthenticated && customToken === null) {
+  // Wait until the /web-auth-token fetch has settled (success or failure) before
+  // mounting the WebView. If we mount before customTokenReady, the fetch is still
+  // in-flight and injectedJavaScriptBeforeContentLoaded fires with no token.
+  // If the fetch failed (server not yet deployed, network error, etc.) customToken
+  // will be null but customTokenReady will be true — we load the WebView anyway
+  // rather than spinning forever.
+  if (isAuthenticated && !customTokenReady) {
     return (
       <View style={styles.container}>
         <View style={styles.overlay}>
