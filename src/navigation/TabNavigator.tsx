@@ -78,6 +78,10 @@ export function TabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        // Keep tab screens mounted after first visit so WebViews don't reload
+        // when the user switches back to a previously-visited tab (default
+        // unmountOnBlur is already false, stated explicitly for clarity).
+        unmountOnBlur: false,
         tabBarStyle: {
           backgroundColor: colors.ink,
           borderTopColor: colors.hairline,

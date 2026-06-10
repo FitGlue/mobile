@@ -10,6 +10,7 @@ import Constants from 'expo-constants';
 import { auth } from '../config/firebase';
 import { logger } from '../utils/logger';
 import { apiConfig } from '../config/environment';
+import { endpoints } from '../config/api';
 import * as AppleHealthService from './AppleHealthService';
 import * as AndroidHealthService from './AndroidHealthService';
 import * as StorageService from './StorageService';
@@ -76,7 +77,7 @@ async function submitToBackend(
   skippedCount: number;
   error?: string;
 }> {
-  const url = `${apiConfig.baseUrl}/api/mobile/sync`;
+  const url = `${apiConfig.baseUrl}${endpoints.mobileSync}`;
 
   const payload = {
     activities,
@@ -313,7 +314,7 @@ export async function fetchRemoteSyncedIds(): Promise<string[]> {
     return [];
   }
 
-  const url = `${apiConfig.baseUrl}/api/mobile/activities`;
+  const url = `${apiConfig.baseUrl}${endpoints.activities}`;
   try {
     const response = await fetch(url, {
       method: 'GET',

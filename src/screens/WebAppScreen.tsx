@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,12 @@ interface WebAppScreenProps {
 export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
   const { customToken, isAuthenticated, customTokenReady } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  // Track whether the initial page load has finished. After that, onLoadStart
+  // fires for every React Router pushState navigation on Android — we must NOT
+  // show the overlay for those or it will spin forever (onLoadEnd never fires
+  // for SPA navigations on Android WebView).
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   const { webViewRef, canGoBack, setCanGoBack, isLoading, setIsLoading, hasError, setHasError, navigate: bridgeNavigate, handleMessage } =
     useWebViewBridge({
@@ -103,8 +109,8 @@ export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
         source={{ uri: url }}
         injectedJavaScriptBeforeContentLoaded={injectedJS}
         onMessage={handleMessage}
-        onLoadStart={() => { setIsLoading(true); setHasError(false); }}
-        onLoadEnd={() => setIsLoading(false)}
+        onLoadStart={() => { if (!hasInitiallyLoaded) setIsLoading(true); setHasError(false); }}
+        onLoadEnd={() => { setIsLoading(false); setHasInitiallyLoaded(true); }}
         onError={() => { setIsLoading(false); setHasError(true); }}
         onNavigationStateChange={state => setCanGoBack(state.canGoBack)}
         javaScriptEnabled
@@ -130,6 +136,7 @@ export function WebAppScreen({ url, tabName }: WebAppScreenProps): JSX.Element {
             style={styles.retryButton}
             onPress={() => {
               setHasError(false);
+              setHasInitiallyLoaded(false);
               setIsLoading(true);
               webViewRef.current?.reload();
             }}
