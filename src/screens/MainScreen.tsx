@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
@@ -14,17 +15,21 @@ import { apiConfig } from '../config/environment';
 // push notification taps without needing React context.
 export const mainWebViewRef = React.createRef<WebView>();
 
+// Paths are relative to the web app's React Router basename (/app).
+// window.__fg.navigate() calls React Router's navigate(), which takes
+// paths relative to the basename — NOT the full URL path.
 const TAB_PATHS: Record<Exclude<ActiveTab, 'sync'>, string> = {
-  dash: '/app/',
-  activities: '/app/activities',
-  pipelines: '/app/settings/pipelines',
+  dash: '/',
+  activities: '/activities',
+  pipelines: '/settings/pipelines',
 };
 
+// routeChange postMessages from the web app also use basename-relative paths.
 function pathToTab(path: string): ActiveTab | null {
-  if (!path || path === '/' || path === '/app' || path === '/app/') return 'dash';
-  if (path.startsWith('/app/activities')) return 'activities';
-  if (path.startsWith('/app/settings/pipelines') || path.startsWith('/app/inputs')) return 'pipelines';
-  if (path.startsWith('/app/recipes')) return 'dash';
+  if (!path || path === '/') return 'dash';
+  if (path.startsWith('/activities')) return 'activities';
+  if (path.startsWith('/settings/pipelines') || path.startsWith('/inputs')) return 'pipelines';
+  if (path.startsWith('/recipes')) return 'dash';
   return null;
 }
 
@@ -33,6 +38,7 @@ export function MainScreen(): JSX.Element {
   const [syncVisible, setSyncVisible] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
 
   const handleRouteChange = useCallback((path: string) => {
     const tab = pathToTab(path);
@@ -81,7 +87,7 @@ export function MainScreen(): JSX.Element {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.webContainer}>
         <WebAppScreen
           webViewRef={mainWebViewRef}
