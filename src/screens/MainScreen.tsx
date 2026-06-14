@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, BackHandler } from 'react-native';
+import { View, StyleSheet, Platform, BackHandler, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import WebView from 'react-native-webview';
 import { BottomTabBar } from '../components/BottomTabBar';
 import type { ActiveTab } from '../components/BottomTabBar';
@@ -15,22 +16,37 @@ import { apiConfig } from '../config/environment';
 // push notification taps without needing React context.
 export const mainWebViewRef = React.createRef<WebView>();
 
-// Paths are relative to the web app's React Router basename (/app).
-// window.__fg.navigate() calls React Router's navigate(), which takes
-// paths relative to the basename — NOT the full URL path.
+// Paths relative to the web app's React Router basename (/app).
 const TAB_PATHS: Record<Exclude<ActiveTab, 'sync'>, string> = {
   dash: '/',
   activities: '/activities',
   pipelines: '/settings/pipelines',
 };
 
-// routeChange postMessages from the web app also use basename-relative paths.
+// routeChange messages use basename-relative paths (no /app prefix).
+// Settings, connections, and inputs all map to the pipelines tab (management area).
 function pathToTab(path: string): ActiveTab | null {
   if (!path || path === '/') return 'dash';
   if (path.startsWith('/activities')) return 'activities';
-  if (path.startsWith('/settings/pipelines') || path.startsWith('/inputs')) return 'pipelines';
+  if (
+    path.startsWith('/settings/pipelines') ||
+    path.startsWith('/inputs')
+  ) return 'pipelines';
+  if (
+    path.startsWith('/settings') ||
+    path.startsWith('/connections')
+  ) return 'pipelines';
   if (path.startsWith('/recipes')) return 'dash';
   return null;
+}
+
+// Returns true if the URL should be handled as a showcase (opens in modal).
+function isShowcaseUrl(url: string, baseUrl: string): boolean {
+  return (
+    url.startsWith(`${baseUrl}/showcase`) ||
+    // /@slug/id and /@slug public profile pages
+    /^https?:\/\/[^/]+\/@[^/]/.test(url)
+  );
 }
 
 export function MainScreen(): JSX.Element {
@@ -66,6 +82,40 @@ export function MainScreen(): JSX.Element {
     navigation.navigate('ShowcaseModal', { url });
   }, [navigation]);
 
+  // Inject a SPA navigation and hide sync overlay — used by SyncScreen settings shortcut.
+  const handleSyncNavigate = useCallback((path: string) => {
+    setSyncVisible(false);
+    const tab = pathToTab(path);
+    if (tab) setActiveTab(tab);
+    const safe = path.replace(/['"`\\]/g, '');
+    mainWebViewRef.current?.injectJavaScript(
+      `window.__fg && window.__fg.navigate('${safe}'); true;`
+    );
+  }, []);
+
+  // URL interception: showcase → modal, external → system browser, SPA → allow.
+  const handleShouldStartLoadWithRequest = useCallback(
+    (request: ShouldStartLoadRequest): boolean => {
+      const { url } = request;
+      const base = apiConfig.baseUrl;
+
+      // Allow the SPA and all its sub-routes
+      if (url.startsWith(`${base}/app`)) return true;
+
+      // Showcase pages → open in dedicated modal (not the main WebView)
+      if (isShowcaseUrl(url, base)) {
+        handleOpenShowcase(url);
+        return false;
+      }
+
+      // Everything else (external domains, marketing site, auth pages, OAuth flows)
+      // → open in the system browser
+      Linking.openURL(url).catch(() => {});
+      return false;
+    },
+    [handleOpenShowcase]
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== 'android') return;
@@ -95,10 +145,11 @@ export function MainScreen(): JSX.Element {
           onRouteChange={handleRouteChange}
           onOpenShowcase={handleOpenShowcase}
           onCanGoBackChange={setCanGoBack}
+          onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         />
         {syncVisible && (
           <View style={StyleSheet.absoluteFillObject}>
-            <SyncScreen />
+            <SyncScreen onNavigate={handleSyncNavigate} />
           </View>
         )}
       </View>

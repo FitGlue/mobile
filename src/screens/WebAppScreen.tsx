@@ -9,6 +9,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
+import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing } from '../theme';
 
@@ -18,6 +19,7 @@ interface WebAppScreenProps {
   onRouteChange?: (path: string) => void;
   onOpenShowcase?: (url: string) => void;
   onCanGoBackChange?: (canGoBack: boolean) => void;
+  onShouldStartLoadWithRequest?: (request: ShouldStartLoadRequest) => boolean;
 }
 
 export function WebAppScreen({
@@ -26,6 +28,7 @@ export function WebAppScreen({
   onRouteChange,
   onOpenShowcase,
   onCanGoBackChange,
+  onShouldStartLoadWithRequest,
 }: WebAppScreenProps): JSX.Element {
   const { customToken, isAuthenticated, customTokenReady } = useAuth();
 
@@ -92,6 +95,7 @@ export function WebAppScreen({
         onLoadStart={() => { if (!hasInitiallyLoaded) setIsLoading(true); setHasError(false); }}
         onLoadEnd={() => { setIsLoading(false); setHasInitiallyLoaded(true); }}
         onError={() => { setIsLoading(false); setHasError(true); }}
+        onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onNavigationStateChange={state => onCanGoBackChange?.(state.canGoBack)}
         javaScriptEnabled
         domStorageEnabled
