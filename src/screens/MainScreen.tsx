@@ -8,6 +8,7 @@ import WebView from 'react-native-webview';
 import { BottomTabBar } from '../components/BottomTabBar';
 import type { ActiveTab } from '../components/BottomTabBar';
 import { SyncScreen } from './SyncScreen';
+import { MenuScreen } from './MenuScreen';
 import { WebAppScreen } from './WebAppScreen';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { apiConfig } from '../config/environment';
@@ -17,26 +18,21 @@ import { apiConfig } from '../config/environment';
 export const mainWebViewRef = React.createRef<WebView>();
 
 // Paths relative to the web app's React Router basename (/app).
-const TAB_PATHS: Record<Exclude<ActiveTab, 'sync'>, string> = {
+const TAB_PATHS: Record<Exclude<ActiveTab, 'sync' | 'more'>, string> = {
   dash: '/',
   activities: '/activities',
-  pipelines: '/settings/pipelines',
 };
 
 // routeChange messages use basename-relative paths (no /app prefix).
-// Settings, connections, and inputs all map to the pipelines tab (management area).
 function pathToTab(path: string): ActiveTab | null {
   if (!path || path === '/') return 'dash';
   if (path.startsWith('/activities')) return 'activities';
   if (
-    path.startsWith('/settings/pipelines') ||
-    path.startsWith('/inputs')
-  ) return 'pipelines';
-  if (
     path.startsWith('/settings') ||
-    path.startsWith('/connections')
-  ) return 'pipelines';
-  if (path.startsWith('/recipes')) return 'dash';
+    path.startsWith('/connections') ||
+    path.startsWith('/inputs') ||
+    path.startsWith('/recipes')
+  ) return 'more';
   return null;
 }
 
@@ -44,7 +40,6 @@ function pathToTab(path: string): ActiveTab | null {
 function isShowcaseUrl(url: string, baseUrl: string): boolean {
   return (
     url.startsWith(`${baseUrl}/showcase`) ||
-    // /@slug/id and /@slug public profile pages
     /^https?:\/\/[^/]+\/@[^/]/.test(url)
   );
 }
@@ -52,6 +47,7 @@ function isShowcaseUrl(url: string, baseUrl: string): boolean {
 export function MainScreen(): JSX.Element {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dash');
   const [syncVisible, setSyncVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
@@ -61,16 +57,25 @@ export function MainScreen(): JSX.Element {
     if (tab !== null) {
       setActiveTab(tab);
       setSyncVisible(false);
+      setMenuVisible(false);
     }
   }, []);
 
   const handleTabPress = useCallback((tab: ActiveTab) => {
     if (tab === 'sync') {
+      setMenuVisible(false);
       setSyncVisible(true);
       setActiveTab('sync');
       return;
     }
+    if (tab === 'more') {
+      setSyncVisible(false);
+      setMenuVisible(true);
+      setActiveTab('more');
+      return;
+    }
     setSyncVisible(false);
+    setMenuVisible(false);
     setActiveTab(tab);
     const safe = TAB_PATHS[tab].replace(/['"`\\]/g, '');
     mainWebViewRef.current?.injectJavaScript(
@@ -82,9 +87,10 @@ export function MainScreen(): JSX.Element {
     navigation.navigate('ShowcaseModal', { url });
   }, [navigation]);
 
-  // Inject a SPA navigation and hide sync overlay — used by SyncScreen settings shortcut.
-  const handleSyncNavigate = useCallback((path: string) => {
+  // Navigate the SPA and close any native overlay.
+  const handleOverlayNavigate = useCallback((path: string) => {
     setSyncVisible(false);
+    setMenuVisible(false);
     const tab = pathToTab(path);
     if (tab) setActiveTab(tab);
     const safe = path.replace(/['"`\\]/g, '');
@@ -99,17 +105,13 @@ export function MainScreen(): JSX.Element {
       const { url } = request;
       const base = apiConfig.baseUrl;
 
-      // Allow the SPA and all its sub-routes
       if (url.startsWith(`${base}/app`)) return true;
 
-      // Showcase pages → open in dedicated modal (not the main WebView)
       if (isShowcaseUrl(url, base)) {
         handleOpenShowcase(url);
         return false;
       }
 
-      // Everything else (external domains, marketing site, auth pages, OAuth flows)
-      // → open in the system browser
       Linking.openURL(url).catch(() => {});
       return false;
     },
@@ -120,20 +122,14 @@ export function MainScreen(): JSX.Element {
     useCallback(() => {
       if (Platform.OS !== 'android') return;
       const onBack = () => {
-        if (syncVisible) {
-          setSyncVisible(false);
-          setActiveTab('dash');
-          return true;
-        }
-        if (canGoBack) {
-          mainWebViewRef.current?.goBack();
-          return true;
-        }
+        if (syncVisible) { setSyncVisible(false); setActiveTab('dash'); return true; }
+        if (menuVisible) { setMenuVisible(false); setActiveTab('dash'); return true; }
+        if (canGoBack) { mainWebViewRef.current?.goBack(); return true; }
         return false;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => sub.remove();
-    }, [syncVisible, canGoBack])
+    }, [syncVisible, menuVisible, canGoBack])
   );
 
   return (
@@ -149,7 +145,12 @@ export function MainScreen(): JSX.Element {
         />
         {syncVisible && (
           <View style={StyleSheet.absoluteFillObject}>
-            <SyncScreen onNavigate={handleSyncNavigate} />
+            <SyncScreen onNavigate={handleOverlayNavigate} />
+          </View>
+        )}
+        {menuVisible && (
+          <View style={StyleSheet.absoluteFillObject}>
+            <MenuScreen onNavigate={handleOverlayNavigate} />
           </View>
         )}
       </View>

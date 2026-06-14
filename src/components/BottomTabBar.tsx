@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 
-export type ActiveTab = 'dash' | 'activities' | 'pipelines' | 'sync';
+export type ActiveTab = 'dash' | 'activities' | 'more' | 'sync';
 
 interface Props {
   activeTab: ActiveTab;
@@ -35,14 +35,12 @@ function ListIcon({ color }: { color: string }) {
   );
 }
 
-function FlowIcon({ color }: { color: string }) {
+function MenuIcon({ color }: { color: string }) {
   return (
-    <View style={styles.iconFlow}>
-      <View style={[styles.iconFlowDot, { backgroundColor: color }]} />
-      <View style={[styles.iconFlowLine, { backgroundColor: color }]} />
-      <View style={[styles.iconFlowDot, { backgroundColor: color }]} />
-      <View style={[styles.iconFlowLine, { backgroundColor: color }]} />
-      <View style={[styles.iconFlowDot, { backgroundColor: color }]} />
+    <View style={styles.iconMenu}>
+      {[0, 1, 2].map(i => (
+        <View key={i} style={[styles.iconMenuLine, { backgroundColor: color }, i === 2 && styles.iconMenuLineShort]} />
+      ))}
     </View>
   );
 }
@@ -50,7 +48,7 @@ function FlowIcon({ color }: { color: string }) {
 const TABS: { key: ActiveTab; label: string }[] = [
   { key: 'dash', label: 'DASH' },
   { key: 'activities', label: 'ACTIVITY' },
-  { key: 'pipelines', label: 'PIPELINES' },
+  { key: 'more', label: 'MORE' },
   { key: 'sync', label: 'SYNC' },
 ];
 
@@ -58,7 +56,7 @@ function TabIcon({ tab, color }: { tab: ActiveTab; color: string }) {
   switch (tab) {
     case 'dash': return <GridIcon color={color} />;
     case 'activities': return <ListIcon color={color} />;
-    case 'pipelines': return <FlowIcon color={color} />;
+    case 'more': return <MenuIcon color={color} />;
     case 'sync': return <Text style={[styles.syncIcon, { color }]}>↺</Text>;
   }
 }
@@ -139,20 +137,17 @@ const styles = StyleSheet.create({
     height: 1.5,
     width: '100%',
   },
-  iconFlow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 22,
+  iconMenu: {
+    width: 18,
     height: 18,
-    gap: 1,
+    justifyContent: 'space-between',
+    paddingVertical: 1,
   },
-  iconFlowDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  iconFlowLine: {
-    flex: 1,
+  iconMenuLine: {
     height: 1.5,
+    width: '100%',
+  },
+  iconMenuLineShort: {
+    width: '65%',
   },
 });

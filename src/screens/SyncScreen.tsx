@@ -35,10 +35,10 @@ interface Activity {
 }
 
 interface SyncScreenProps {
-  onNavigate?: (path: string) => void;
+  onNavigate: (path: string) => void;
 }
 
-export function SyncScreen({ onNavigate }: SyncScreenProps = {}): JSX.Element {
+export function SyncScreen({ onNavigate }: SyncScreenProps): JSX.Element {
   const insets = useSafeAreaInsets();
   const {
     isAvailable,
@@ -259,29 +259,6 @@ export function SyncScreen({ onNavigate }: SyncScreenProps = {}): JSX.Element {
           )}
         </View>
 
-        {/* App management shortcuts */}
-        {onNavigate && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>MANAGE</Text>
-            {[
-              { label: 'CONNECTIONS', path: '/connections' },
-              { label: 'PIPELINES', path: '/settings/pipelines' },
-              { label: 'ACCOUNT SETTINGS', path: '/settings/account' },
-              { label: 'SUBSCRIPTION', path: '/settings/subscription' },
-            ].map(({ label, path }) => (
-              <TouchableOpacity
-                key={path}
-                style={styles.navRow}
-                onPress={() => onNavigate(path)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.navRowLabel}>{label}</Text>
-                <Text style={styles.navRowArrow}>›</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
       </ScrollView>
     </View>
   );
@@ -477,28 +454,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginTop: 2,
-  },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.ink2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  navRowLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.paper,
-    fontFamily: 'monospace',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  navRowArrow: {
-    fontSize: 18,
-    color: colors.textMuted,
-    fontWeight: '300',
   },
 });
