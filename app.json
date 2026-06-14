@@ -33,6 +33,7 @@
         "backgroundColor": "#0d0d0d"
       },
       "package": "com.fitglue.mobile",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "permissions": [
         "android.permission.health.READ_EXERCISE",

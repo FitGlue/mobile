@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "605889586984",
+    "project_id": "fitglue-server-prod",
+    "storage_bucket": "fitglue-server-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:605889586984:android:8cfb019f110aa6cd50521d",
+        "android_client_info": {
+          "package_name": "com.fitglue.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "605889586984-k8v7qglu8kcsfkb5nqkiuemvjt3cf9d7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiyHP-Hi0wVqwW2A6r5c7f6jCjSI3bq38"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "605889586984-k8v7qglu8kcsfkb5nqkiuemvjt3cf9d7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
