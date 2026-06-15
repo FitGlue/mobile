@@ -29,12 +29,13 @@ function LoadingScreen(): JSX.Element {
   );
 }
 
-// Maps notification payload `screen` values to SPA paths
+// Maps notification payload `screen` values to basename-relative SPA paths (no /app prefix).
 const SCREEN_TO_PATH: Record<string, string> = {
-  activity: '/app/activities',
-  activities: '/app/activities',
-  pipeline: '/app/settings/pipelines',
-  pipelines: '/app/settings/pipelines',
+  activity: '/activities',
+  activities: '/activities',
+  pipeline: '/settings/pipelines',
+  pipelines: '/settings/pipelines',
+  sync: '',
 };
 
 export function AppNavigator(): JSX.Element {
@@ -61,10 +62,10 @@ export function AppNavigator(): JSX.Element {
       if (!navigationRef.isReady()) return;
       navigationRef.navigate('Main', {} as never);
 
+      const basePath = SCREEN_TO_PATH[data.screen] ?? null;
       const webPath = data.path
-        ?? (data.id && data.screen !== 'sync' ? `${SCREEN_TO_PATH[data.screen]}/${data.id}` : null)
-        ?? SCREEN_TO_PATH[data.screen]
-        ?? null;
+        ?? (data.id && basePath && data.screen !== 'sync' ? `${basePath}/${data.id}` : null)
+        ?? basePath;
 
       if (webPath) {
         const safe = webPath.replace(/['"`\\]/g, '');
@@ -72,7 +73,7 @@ export function AppNavigator(): JSX.Element {
           mainWebViewRef.current?.injectJavaScript(
             `window.__fg && window.__fg.navigate('${safe}'); true;`
           );
-        }, 300);
+        }, 500);
       }
     });
     return () => sub.remove();
