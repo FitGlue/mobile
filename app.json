@@ -48,6 +48,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-updates",
+        {
+          "requestHeaders": {
+            "expo-channel-name": "production"
+          }
+        }
+      ],
       "expo-health-connect",
       [
         "expo-notifications",
