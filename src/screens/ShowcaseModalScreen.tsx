@@ -29,7 +29,7 @@ export function ShowcaseModalScreen({ navigation, route }: ShowcaseModalScreenPr
         source={{ uri: url }}
         javaScriptEnabled
         domStorageEnabled
-        injectedJavaScriptBeforeContentLoaded="window.__fg_inapp = true; true;"
+        onMessage={() => {}}
         style={styles.webView}
       />
     </View>
