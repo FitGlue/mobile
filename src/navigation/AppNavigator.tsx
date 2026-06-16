@@ -9,6 +9,7 @@ import { LoginScreen, OnboardingScreen } from '../screens';
 import { ShowcaseModalScreen } from '../screens/ShowcaseModalScreen';
 import { MainScreen, mainWebViewRef } from '../screens/MainScreen';
 import { navigationIntegration } from '../../App';
+import { resolveDeepLinkPath, type NotificationDeepLinkData } from './deepLink';
 
 const ONBOARDING_COMPLETE_KEY = '@fitglue/onboarding_complete';
 
@@ -29,15 +30,6 @@ function LoadingScreen(): JSX.Element {
   );
 }
 
-// Maps notification payload `screen` values to basename-relative SPA paths (no /app prefix).
-const SCREEN_TO_PATH: Record<string, string> = {
-  activity: '/activities',
-  activities: '/activities',
-  pipeline: '/settings/pipelines',
-  pipelines: '/settings/pipelines',
-  sync: '',
-};
-
 export function AppNavigator(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
@@ -52,20 +44,13 @@ export function AppNavigator(): JSX.Element {
   // Push notification deep linking
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as {
-        screen?: string;
-        id?: string;
-        path?: string;
-      };
-      if (!data?.screen) return;
+      const data = response.notification.request.content.data as NotificationDeepLinkData;
+      if (!data?.screen && !data?.path) return;
 
       if (!navigationRef.isReady()) return;
       navigationRef.navigate('Main', {} as never);
 
-      const basePath = SCREEN_TO_PATH[data.screen] ?? null;
-      const webPath = data.path
-        ?? (data.id && basePath && data.screen !== 'sync' ? `${basePath}/${data.id}` : null)
-        ?? basePath;
+      const webPath = resolveDeepLinkPath(data);
 
       if (webPath) {
         const safe = webPath.replace(/['"`\\]/g, '');
