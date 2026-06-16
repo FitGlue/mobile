@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import WebView from 'react-native-webview';
+import type { WebViewMessageEvent } from 'react-native-webview';
 import { colors, spacing } from '../theme';
+import { saveImageToDevice } from '../utils/shareImage';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 interface ShowcaseModalScreenProps {
@@ -15,6 +17,26 @@ interface ShowcaseModalScreenProps {
 export function ShowcaseModalScreen({ navigation, route }: ShowcaseModalScreenProps): JSX.Element {
   const insets = useSafeAreaInsets();
   const { url } = route.params;
+
+  // Showcase "share/download" buttons bridge image bytes to native (the Web
+  // Share API / `<a download>` don't work in the WebView). Hand them to the
+  // OS share sheet.
+  const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    try {
+      const msg = JSON.parse(event.nativeEvent.data) as {
+        type: string;
+        dataUrl?: string;
+        filename?: string;
+      };
+      if (msg.type === 'saveImage' && msg.dataUrl && msg.filename) {
+        saveImageToDevice(msg.dataUrl, msg.filename).catch(() => {
+          // non-fatal: user dismissed the share sheet or save failed
+        });
+      }
+    } catch {
+      // ignore malformed messages
+    }
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -29,7 +51,7 @@ export function ShowcaseModalScreen({ navigation, route }: ShowcaseModalScreenPr
         source={{ uri: url }}
         javaScriptEnabled
         domStorageEnabled
-        onMessage={() => {}}
+        onMessage={handleMessage}
         style={styles.webView}
       />
     </View>

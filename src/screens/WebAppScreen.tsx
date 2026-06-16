@@ -11,6 +11,7 @@ import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useAuth } from '../context/AuthContext';
+import { saveImageToDevice } from '../utils/shareImage';
 import { colors, spacing } from '../theme';
 
 interface WebAppScreenProps {
@@ -42,6 +43,8 @@ export function WebAppScreen({
         type: string;
         path?: string;
         url?: string;
+        dataUrl?: string;
+        filename?: string;
       };
       switch (msg.type) {
         case 'routeChange':
@@ -49,6 +52,13 @@ export function WebAppScreen({
           break;
         case 'openShowcase':
           if (msg.url) onOpenShowcase?.(msg.url);
+          break;
+        case 'saveImage':
+          if (msg.dataUrl && msg.filename) {
+            saveImageToDevice(msg.dataUrl, msg.filename).catch(() => {
+              // non-fatal: user dismissed the share sheet or save failed
+            });
+          }
           break;
         case 'authExpired':
           // Re-fetch and push a fresh custom token into the WebView
