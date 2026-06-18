@@ -3,19 +3,19 @@
  * native OS share sheet. expo-file-system and expo-sharing are mocked.
  */
 
-const writeAsStringAsync = jest.fn((..._args: unknown[]) => Promise.resolve());
-const shareAsync = jest.fn((..._args: unknown[]) => Promise.resolve());
-const isAvailableAsync = jest.fn(() => Promise.resolve(true));
+const mockWriteAsStringAsync = jest.fn((..._args: unknown[]) => Promise.resolve());
+const mockShareAsync = jest.fn((..._args: unknown[]) => Promise.resolve());
+const mockIsAvailableAsync = jest.fn(() => Promise.resolve(true));
 
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
   EncodingType: { Base64: 'base64' },
-  writeAsStringAsync: (...args: unknown[]) => writeAsStringAsync(...args),
+  writeAsStringAsync: (...args: unknown[]) => mockWriteAsStringAsync(...args),
 }));
 
 jest.mock('expo-sharing', () => ({
-  isAvailableAsync: () => isAvailableAsync(),
-  shareAsync: (...args: unknown[]) => shareAsync(...args),
+  isAvailableAsync: () => mockIsAvailableAsync(),
+  shareAsync: (...args: unknown[]) => mockShareAsync(...args),
 }));
 
 import { saveImageToDevice } from '../shareImage';
@@ -24,15 +24,15 @@ const DATA_URL = 'data:image/png;base64,AAAA';
 
 describe('saveImageToDevice', () => {
   beforeEach(() => {
-    writeAsStringAsync.mockClear();
-    shareAsync.mockClear();
-    isAvailableAsync.mockReset().mockResolvedValue(true);
+    mockWriteAsStringAsync.mockClear();
+    mockShareAsync.mockClear();
+    mockIsAvailableAsync.mockReset().mockResolvedValue(true);
   });
 
   it('strips the data-URL prefix and writes the base64 to the cache dir', async () => {
     await saveImageToDevice(DATA_URL, 'route-fitglue.png');
 
-    expect(writeAsStringAsync).toHaveBeenCalledWith(
+    expect(mockWriteAsStringAsync).toHaveBeenCalledWith(
       'file:///cache/route-fitglue.png',
       'AAAA',
       { encoding: 'base64' }
@@ -42,7 +42,7 @@ describe('saveImageToDevice', () => {
   it('opens the share sheet for the written file', async () => {
     await saveImageToDevice(DATA_URL, 'route-fitglue.png');
 
-    expect(shareAsync).toHaveBeenCalledWith(
+    expect(mockShareAsync).toHaveBeenCalledWith(
       'file:///cache/route-fitglue.png',
       expect.objectContaining({ mimeType: 'image/png' })
     );
@@ -51,7 +51,7 @@ describe('saveImageToDevice', () => {
   it('sanitises unsafe filename characters', async () => {
     await saveImageToDevice(DATA_URL, 'My Run!/2026.png');
 
-    expect(writeAsStringAsync).toHaveBeenCalledWith(
+    expect(mockWriteAsStringAsync).toHaveBeenCalledWith(
       'file:///cache/My_Run__2026.png',
       'AAAA',
       { encoding: 'base64' }
@@ -59,11 +59,11 @@ describe('saveImageToDevice', () => {
   });
 
   it('skips sharing when the share sheet is unavailable', async () => {
-    isAvailableAsync.mockResolvedValue(false);
+    mockIsAvailableAsync.mockResolvedValue(false);
 
     await saveImageToDevice(DATA_URL, 'route-fitglue.png');
 
-    expect(writeAsStringAsync).toHaveBeenCalled();
-    expect(shareAsync).not.toHaveBeenCalled();
+    expect(mockWriteAsStringAsync).toHaveBeenCalled();
+    expect(mockShareAsync).not.toHaveBeenCalled();
   });
 });
