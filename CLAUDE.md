@@ -187,10 +187,16 @@ Set at build time via `EXPO_PUBLIC_ENVIRONMENT=development|test|production`.
 ## Testing
 
 ```bash
-npm test    # Jest (ts-jest, node env)
+npm test            # Jest (jest-expo preset)
+npm run test:coverage  # Jest with coverage
+npm run typecheck   # tsc --noEmit
+npm run preflight   # typecheck + coverage + per-file coverage floor
 ```
 
-Test files at `src/utils/__tests__/` and `src/services/__tests__/`. AsyncStorage is mocked via `jest.setup.js`.
+- **Preset:** `jest-expo` (babel-jest + jsdom), with `@testing-library/react-native` for component/hook render tests. Requires `babel-preset-expo` (in `babel.config.js`).
+- **Coverage gates (enforced by `preflight`):** global lines/statements/functions ≥ 75%, branches ≥ 70% (`jest.coverageThreshold` in `package.json`), plus `scripts/check-file-coverage.js` which fails if any source file has zero coverage.
+- Tests live in `__tests__/` dirs alongside the code they cover. AsyncStorage is mocked via `jest.setup.js`.
+- **Mock hoisting gotchas (babel-jest, unlike the old ts-jest):** `jest.mock()` factories may only reference `mock`-prefixed variables, and the factory runs at *require* time — for eagerly-resolved imports (`import * as X`, `import { Named }`) build the mock object **inline inside the factory** with `jest.fn()`s and grab a handle by importing the mocked module, rather than referencing a top-level `const`.
 
 ## AsyncStorage Keys
 

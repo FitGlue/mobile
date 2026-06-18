@@ -45,3 +45,6 @@ yarn-error.*
 *.aab
 credentials.json
 .local-debug.keystore
+
+# Test coverage
+coverage/
