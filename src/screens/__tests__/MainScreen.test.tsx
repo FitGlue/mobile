@@ -44,6 +44,9 @@ import { MainScreen, mainWebViewRef } from '../MainScreen';
 const onTabPress = () => mockTabBarProps.onTabPress as (t: string) => void;
 const shouldStart = () =>
   mockWebAppProps.onShouldStartLoadWithRequest as (r: { url: string }) => boolean;
+const fireWebLoaded = () => (mockWebAppProps.onLoadEnd as () => void)();
+const injectMock = () =>
+  (mainWebViewRef.current as unknown as { injectJavaScript: jest.Mock }).injectJavaScript;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -85,6 +88,43 @@ describe('MainScreen', () => {
     render(<MainScreen />);
     act(() => (mockWebAppProps.onRouteChange as (p: string) => void)('/settings/account'));
     expect(mockTabBarProps.activeTab).toBe('more');
+  });
+
+  describe('deep linking', () => {
+    it('bakes a cold-start deep link into the initial WebView URL (no injection race)', () => {
+      const onDeepLinkConsumed = jest.fn();
+      render(
+        <MainScreen deepLinkPath="/activities/act-9" onDeepLinkConsumed={onDeepLinkConsumed} />,
+      );
+      // Loaded directly at the target — no dashboard flash, no post-load inject.
+      expect(mockWebAppProps.url).toBe('https://app.test/app/activities/act-9');
+      expect(mockTabBarProps.activeTab).toBe('activities');
+      expect(injectMock()).not.toHaveBeenCalled();
+      expect(onDeepLinkConsumed).toHaveBeenCalled();
+    });
+
+    it('injects navigation for a deep link that arrives after load (warm start)', () => {
+      const onDeepLinkConsumed = jest.fn();
+      const { rerender } = render(<MainScreen deepLinkPath={null} onDeepLinkConsumed={onDeepLinkConsumed} />);
+      act(() => fireWebLoaded());
+
+      rerender(<MainScreen deepLinkPath="/activities" onDeepLinkConsumed={onDeepLinkConsumed} />);
+
+      expect(injectMock()).toHaveBeenCalledWith(expect.stringContaining('/activities'));
+      expect(mockTabBarProps.activeTab).toBe('activities');
+      expect(onDeepLinkConsumed).toHaveBeenCalled();
+    });
+
+    it('queues a deep link that arrives before load and flushes it on load end', () => {
+      const { rerender } = render(<MainScreen deepLinkPath={null} />);
+
+      // Arrives before the SPA has loaded — must not inject into a page without window.__fg.
+      rerender(<MainScreen deepLinkPath="/settings/pipelines/p1" />);
+      expect(injectMock()).not.toHaveBeenCalled();
+
+      act(() => fireWebLoaded());
+      expect(injectMock()).toHaveBeenCalledWith(expect.stringContaining('/settings/pipelines/p1'));
+    });
   });
 
   describe('URL interception', () => {

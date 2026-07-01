@@ -138,4 +138,13 @@ describe('WebAppScreen', () => {
     // No assertion error means the state transitions ran without throwing.
     expect(mockWebViewProps.source).toEqual({ uri: 'u' });
   });
+
+  it('forwards load end to the host (so pending deep links can flush)', () => {
+    const onLoadEnd = jest.fn();
+    render(<WebAppScreen webViewRef={makeRef()} url="u" onLoadEnd={onLoadEnd} />);
+    act(() => {
+      (mockWebViewProps.onLoadEnd as () => void)();
+    });
+    expect(onLoadEnd).toHaveBeenCalled();
+  });
 });

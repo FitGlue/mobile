@@ -36,3 +36,33 @@ export function resolveDeepLinkPath(data: NotificationDeepLinkData | undefined):
 
   return webPath ? webPath : null;
 }
+
+/**
+ * Strip characters that could break out of the single-quoted string literal we
+ * embed the path into when injecting `window.__fg.navigate('…')`.
+ */
+export function sanitizeSpaPath(path: string): string {
+  return path.replace(/['"`\\]/g, '');
+}
+
+/**
+ * Build the injected-JS snippet that drives the SPA router to `path`. The web
+ * app exposes `window.__fg.navigate`; the guard makes injection a no-op if the
+ * page hasn't wired it up yet (e.g. mid-load).
+ */
+export function buildNavigateScript(path: string): string {
+  return `window.__fg && window.__fg.navigate('${sanitizeSpaPath(path)}'); true;`;
+}
+
+/**
+ * Build the WebView URL for the SPA, optionally deep-linked to a
+ * basename-relative `path`. When `path` is absent we load the SPA root
+ * (`/app/`, trailing slash required for the React Router basename). When it's
+ * present we load it directly (e.g. `/app/activities/act-9`) so a cold start
+ * from a notification lands on the right screen without a dashboard flash or a
+ * post-load injection race.
+ */
+export function buildWebAppUrl(baseUrl: string, path?: string | null): string {
+  if (!path) return `${baseUrl}/app/`;
+  return `${baseUrl}/app${path}`;
+}

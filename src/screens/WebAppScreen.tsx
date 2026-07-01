@@ -21,6 +21,9 @@ interface WebAppScreenProps {
   onOpenShowcase?: (url: string) => void;
   onCanGoBackChange?: (canGoBack: boolean) => void;
   onShouldStartLoadWithRequest?: (request: ShouldStartLoadRequest) => boolean;
+  // Fires once the SPA has finished loading — the host uses this to flush any
+  // deep-link navigation that arrived before `window.__fg` was available.
+  onLoadEnd?: () => void;
 }
 
 export function WebAppScreen({
@@ -30,6 +33,7 @@ export function WebAppScreen({
   onOpenShowcase,
   onCanGoBackChange,
   onShouldStartLoadWithRequest,
+  onLoadEnd,
 }: WebAppScreenProps): JSX.Element {
   const { customToken, isAuthenticated, customTokenReady } = useAuth();
 
@@ -103,7 +107,7 @@ export function WebAppScreen({
         injectedJavaScriptBeforeContentLoaded={injectedJS}
         onMessage={handleMessage}
         onLoadStart={() => { if (!hasInitiallyLoaded) setIsLoading(true); setHasError(false); }}
-        onLoadEnd={() => { setIsLoading(false); setHasInitiallyLoaded(true); }}
+        onLoadEnd={() => { setIsLoading(false); setHasInitiallyLoaded(true); onLoadEnd?.(); }}
         onError={() => { setIsLoading(false); setHasError(true); }}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onNavigationStateChange={state => onCanGoBackChange?.(state.canGoBack)}

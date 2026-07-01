@@ -1,8 +1,8 @@
 /**
  * Tests for the auth-aware AppNavigator. Navigation containers, screens, the
  * Sentry navigation integration and expo-notifications are mocked so we can
- * drive onboarding gating, the deep-link listener and onboarding completion
- * without a real navigator.
+ * drive onboarding gating, the deep-link handling (cold + warm start) and
+ * onboarding completion without a real navigator.
  */
 
 const mockUseAuth = jest.fn();
@@ -13,9 +13,15 @@ jest.mock('../../screens', () => ({
   OnboardingScreen: () => null,
 }));
 jest.mock('../../screens/ShowcaseModalScreen', () => ({ ShowcaseModalScreen: () => null }));
+
+// MainScreen is rendered via a render-prop; capture the deep-link props it
+// receives so we can assert the resolved path is handed down to it.
+const mockMainScreenProps: Record<string, unknown> = {};
 jest.mock('../../screens/MainScreen', () => ({
-  MainScreen: () => null,
-  mainWebViewRef: { current: { injectJavaScript: jest.fn() } },
+  MainScreen: (props: Record<string, unknown>) => {
+    Object.assign(mockMainScreenProps, props);
+    return null;
+  },
 }));
 jest.mock('../../../App', () => ({
   navigationIntegration: { registerNavigationContainer: jest.fn() },
@@ -38,36 +44,44 @@ jest.mock('@react-navigation/native-stack', () => {
     createNativeStackNavigator: () => ({
       Navigator: ({ children }: { children: React.ReactNode }) =>
         React.createElement(React.Fragment, null, children),
-      Screen: () => null,
+      // Render whichever screen wiring is used: a render-prop child (Main /
+      // Onboarding) or a `component` (Login / ShowcaseModal).
+      Screen: ({ children, component: C }: { children?: () => React.ReactNode; component?: React.ComponentType }) => {
+        if (typeof children === 'function') return children();
+        if (C) return React.createElement(C);
+        return null;
+      },
     }),
   };
 });
 
 jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(() => Promise.resolve(null)),
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { navigationIntegration } from '../../../App';
-import { mainWebViewRef } from '../../screens/MainScreen';
 import React from 'react';
 import { render, waitFor, act } from '@testing-library/react-native';
 import { AppNavigator } from '../AppNavigator';
 
 const mockAddListener = Notifications.addNotificationResponseReceivedListener as jest.Mock;
+const mockGetLastResponse = Notifications.getLastNotificationResponseAsync as jest.Mock;
 const mockRegisterNav = (navigationIntegration as unknown as { registerNavigationContainer: jest.Mock })
   .registerNavigationContainer;
+
+function responseFor(data: Record<string, unknown>) {
+  return { notification: { request: { content: { data } } } };
+}
 
 beforeEach(async () => {
   jest.clearAllMocks();
   await AsyncStorage.clear();
+  for (const k of Object.keys(mockMainScreenProps)) delete mockMainScreenProps[k];
   mockNavRef.isReady.mockReturnValue(true);
-  jest.useFakeTimers();
-});
-afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
+  mockGetLastResponse.mockResolvedValue(null);
 });
 
 describe('AppNavigator', () => {
@@ -88,7 +102,7 @@ describe('AppNavigator', () => {
     expect(mockRegisterNav).not.toHaveBeenCalled();
   });
 
-  it('navigates the WebView when a deep-link notification is tapped', async () => {
+  it('hands the resolved deep-link path to MainScreen when a notification is tapped (warm start)', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
     await AsyncStorage.setItem('@fitglue/onboarding_complete', 'true');
 
@@ -97,14 +111,31 @@ describe('AppNavigator', () => {
 
     const listener = mockAddListener.mock.calls[0][0] as (r: unknown) => void;
     act(() => {
-      listener({ notification: { request: { content: { data: { screen: 'activity', id: 'act-9' } } } } });
+      listener(responseFor({ screen: 'activity', id: 'act-9' }));
     });
 
     expect(mockNavRef.navigate).toHaveBeenCalledWith('Main', {});
+    expect(mockMainScreenProps.deepLinkPath).toBe('/activities/act-9');
+  });
 
-    act(() => { jest.advanceTimersByTime(600); });
-    expect((mainWebViewRef.current as unknown as { injectJavaScript: jest.Mock }).injectJavaScript)
-      .toHaveBeenCalledWith(expect.stringContaining('/activities/act-9'));
+  it('hands a cold-start deep link (getLastNotificationResponseAsync) to MainScreen', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
+    await AsyncStorage.setItem('@fitglue/onboarding_complete', 'true');
+    mockGetLastResponse.mockResolvedValue(responseFor({ screen: 'pipeline', id: 'p1' }));
+
+    render(<AppNavigator />);
+
+    await waitFor(() => expect(mockMainScreenProps.deepLinkPath).toBe('/settings/pipelines/p1'));
+  });
+
+  it('does not navigate when there is no last notification response (normal cold start)', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
+    await AsyncStorage.setItem('@fitglue/onboarding_complete', 'true');
+
+    render(<AppNavigator />);
+
+    await waitFor(() => expect(mockRegisterNav).toHaveBeenCalled());
+    expect(mockMainScreenProps.deepLinkPath).toBeNull();
   });
 
   it('ignores deep-link notifications without screen or path', async () => {
@@ -116,9 +147,10 @@ describe('AppNavigator', () => {
 
     const listener = mockAddListener.mock.calls[0][0] as (r: unknown) => void;
     act(() => {
-      listener({ notification: { request: { content: { data: {} } } } });
+      listener(responseFor({}));
     });
 
     expect(mockNavRef.navigate).not.toHaveBeenCalled();
+    expect(mockMainScreenProps.deepLinkPath).toBeNull();
   });
 });
